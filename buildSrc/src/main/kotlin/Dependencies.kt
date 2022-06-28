@@ -7,6 +7,7 @@ object Dependencies {
     val `logback-classic` = "ch.qos.logback:logback-classic:${Versions.`logback-classic`}"
     val `kotest-runner-junit5` = "io.kotest:kotest-runner-junit5:${Versions.kotest}"
     val `kotest-assertions-core` = "io.kotest:kotest-assertions-core:${Versions.kotest}"
+    val `kotest-property` = "io.kotest:kotest-property:${Versions.kotest}"
     val mockk = "io.mockk:mockk:${Versions.mockk}"
 
     object Versions {

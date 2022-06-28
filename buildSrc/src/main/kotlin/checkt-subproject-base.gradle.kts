@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
     kotlin("jvm")
     `maven-publish` apply false
-    id("org.jmailen.kotlinter")
+//    id("org.jmailen.kotlinter")
 }
 
 version = rootProject.version
@@ -16,6 +16,7 @@ repositories {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = "1.8"
+        freeCompilerArgs += "-Xcontext-receivers"
     }
 }
 
@@ -28,6 +29,7 @@ findProperty("checkt.testing.disabled") ?: run {
     dependencies {
         testImplementation(Dependencies.`kotest-runner-junit5`)
         testImplementation(Dependencies.`kotest-assertions-core`)
+        testImplementation(Dependencies.`kotest-property`)
         testImplementation(Dependencies.mockk)
     }
 

@@ -27,10 +27,7 @@ dependencies {
 
 findProperty("checkt.testing.disabled") ?: run {
     dependencies {
-        testImplementation(Dependencies.`kotest-runner-junit5`)
-        testImplementation(Dependencies.`kotest-assertions-core`)
-        testImplementation(Dependencies.`kotest-property`)
-        testImplementation(Dependencies.mockk)
+        testImplementation(project(":testing"))
     }
 
     tasks.test {

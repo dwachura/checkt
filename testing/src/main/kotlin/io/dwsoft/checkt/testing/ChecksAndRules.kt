@@ -2,10 +2,17 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
+import io.dwsoft.checkt.core.ErrorDetailsBuilderContext
 import io.dwsoft.checkt.core.errorMessage
 import io.dwsoft.checkt.core.toValidationRule
 
-fun alwaysFailingRule(
+val alwaysFailingRule = alwaysFailWithMessage { "$value - ${validationPath()}" }
+
+fun alwaysFailWithMessage(
+    buildingBlock: ErrorDetailsBuilderContext<Any, AlwaysFailingCheck.Key, Check.Params.None>.() -> String
+) = AlwaysFailingCheck.toValidationRule(errorMessage(buildingBlock))
+
+fun alwaysFail(
     errorDetailsBuilder: ErrorDetailsBuilder<Any, AlwaysFailingCheck.Key, Check.Params.None>
 ) = AlwaysFailingCheck.toValidationRule(errorDetailsBuilder)
 

@@ -31,3 +31,8 @@ fun ValidationResult.throwIfFailure(): Unit =
         is Failure -> throw ValidationFailure(errors)
         Success -> Unit
     }
+
+fun ValidationFailure.errorMessages(
+    transformer: (Displayed) -> String = { it.value }
+): List<String> =
+    errors.map { transformer(it.errorDetails) }

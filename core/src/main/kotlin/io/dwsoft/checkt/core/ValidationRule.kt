@@ -16,14 +16,8 @@ class ErrorDetailsBuilderContext<V, K : Check.Key, P : Check.Params> internal co
     val validationParams: P
         get() = violatedCheck.params
 
-    operator fun NamingPath.invoke(
-        separator: String = ".",
-        transformer: (Displayed) -> String = { it.value },
-    ): String =
-        validationPath.fold(
-            transformingSegments = transformer,
-            joiningSegments = { acc, str -> "$acc$separator$str" }
-        )
+    operator fun NamingPath.invoke(separator: String = "."): String =
+        validationPath.fold { acc, str -> "$acc$separator$str" }
 }
 
 typealias ErrorDetailsBuilder<V, K, P> = ErrorDetailsBuilderContext<V, K, P>.() -> Displayed

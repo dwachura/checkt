@@ -1,11 +1,10 @@
-package io.dwsoft.checkt.basic.checks
+package io.dwsoft.checkt.basic
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.errorMessage
-import io.dwsoft.checkt.core.toDisplayed
 import io.dwsoft.checkt.core.toValidationRule
 
 class LessThan<V>(private val max: V) :

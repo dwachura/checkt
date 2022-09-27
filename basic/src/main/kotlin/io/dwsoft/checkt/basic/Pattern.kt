@@ -1,4 +1,4 @@
-package io.dwsoft.checkt.basic.checks
+package io.dwsoft.checkt.basic
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context

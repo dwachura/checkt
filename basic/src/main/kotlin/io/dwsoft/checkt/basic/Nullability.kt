@@ -1,15 +1,14 @@
-package io.dwsoft.checkt.basic.checks
+package io.dwsoft.checkt.basic
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.Check.Params.None
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
-import io.dwsoft.checkt.core.ValidationDsl
+import io.dwsoft.checkt.core.ValidationScopeDsl
 import io.dwsoft.checkt.core.ValidationError
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationScope
 import io.dwsoft.checkt.core.errorMessage
-import io.dwsoft.checkt.core.toDisplayed
 import io.dwsoft.checkt.core.toValidationRule
 
 class NonNull<T : Any?> : Check<T, NonNull.Key, None> {
@@ -27,11 +26,11 @@ fun <V> notBeNull(
 ): ValidationRule<V, NonNull.Key, None> =
     NonNull<V>().toValidationRule(errorDetailsBuilder)
 
-context(ValidationScope, V)
+context (ValidationScope, V)
 infix fun <E : ValidationError<V, NonNull.Key, None>?, V> E.and(
-    notNullContext: context(ValidationScope, ValidationDsl) (V & Any).() -> Unit
+    notNullContext: context (ValidationScope, ValidationScopeDsl) (V & Any).() -> Unit
 ) {
-    this ?: notNullContext(this@ValidationScope, ValidationDsl, this@V!!)
+    this ?: notNullContext(this@ValidationScope, ValidationScopeDsl(), this@V!!)
 }
 
 class IsNull<T : Any?> : Check<T, IsNull.Key, None> {

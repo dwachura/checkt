@@ -1,10 +1,10 @@
 package io.dwsoft.checkt.core
 
+import io.dwsoft.checkt.testing.alwaysFail
 import io.dwsoft.checkt.testing.alwaysFailingRule
 import io.dwsoft.checkt.testing.alwaysPassingRule
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.collections.shouldContainExactly
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.string.shouldContain
@@ -23,10 +23,10 @@ class ValidationScopeTests : StringSpec({
 
     "result of failed validation contains all errors" {
         val validationScope = ValidationScope()
-        val failingRule = alwaysFailingRule(errorMessage { "$value" })
+        val failingRule = alwaysFail(errorMessage { "$value" })
         val validatedValues = listOf("v1", "v2")
         val expectedErrors = validatedValues.map {
-            ValidationError(it, failingRule.context, NamingPath.Empty, it.toDisplayed())
+            ValidationError(it, failingRule.context, NamingPath.unnamed, it.toDisplayed())
         }
 
         with(validationScope) {
@@ -41,31 +41,25 @@ class ValidationScopeTests : StringSpec({
 
     "result of a scope is combined of results of scopes it encloses " {
         val validationScope = ValidationScope()
-        val enclosingScopeName = "enclosing".toDisplayed()
-        val enclosing = validationScope.enclose(enclosingScopeName)
-        val failingRule = alwaysFailingRule(errorMessage { "$value" })
-        val checkedValue = Any()
+        val enclosedScope1 = validationScope.enclose(NamingPath.Segment.Name("enclosed1"))
+        val enclosedScope2 = validationScope.enclose(NamingPath.Segment.Name("enclosed2"))
+        val enclosedResult1 = enclosedScope1.apply {
+            Any().checkAgainst(alwaysFailingRule)
+        }.result
+        val enclosedResult2 = enclosedScope2.apply {
+            Any().checkAgainst(alwaysFailingRule)
+        }.result
 
-        with(enclosing) {
-            checkedValue.checkAgainst(failingRule)
-        }
+        val enclosingScopeResult = validationScope.result
 
-        validationScope.result.shouldBeInstanceOf<ValidationResult.Failure>()
-            .errors.shouldContainExactly(
-                ValidationError(
-                    checkedValue,
-                    failingRule.context,
-                    enclosingScopeName.toNamingPath(),
-                    checkedValue.toString().toDisplayed()
-                )
-            )
+        enclosingScopeResult shouldBe (enclosedResult1 + enclosedResult2)
     }
 
     "nested scopes must have unique names" {
         val scope = ValidationScope()
-        scope.enclose("nested".toDisplayed())
+        scope.enclose(NamingPath.Segment.Name("same-name"))
 
-        shouldThrow<IllegalArgumentException> { scope.enclose("nested".toDisplayed()) }
-            .message shouldContain "Scope named 'nested' is already enclosed"
+        shouldThrow<IllegalArgumentException> { scope.enclose(NamingPath.Segment.Name("same-name")) }
+            .message shouldContain "Scope named same-name is already enclosed"
     }
 })

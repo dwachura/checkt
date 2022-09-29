@@ -4,7 +4,6 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.errorMessage
 import io.dwsoft.checkt.core.toValidationRule
 
 class InRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
@@ -22,7 +21,7 @@ class InRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
 fun <V : Comparable<V>> beInRange(
     range: ClosedRange<V>,
     errorDetailsBuilder: ErrorDetailsBuilder<V, InRange.Key, InRange.Params<V>> =
-        errorMessage { "${validationPath()} must be in range ${validationParams.range}" },
+        { "${validationPath()} must be in range ${validationParams.range}" },
 ): ValidationRule<V, InRange.Key, InRange.Params<V>> =
     InRange(range).toValidationRule(errorDetailsBuilder)
 
@@ -41,6 +40,6 @@ class OutsideRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
 fun <V : Comparable<V>> beOutsideRange(
     range: ClosedRange<V>,
     errorDetailsBuilder: ErrorDetailsBuilder<V, OutsideRange.Key, OutsideRange.Params<V>> =
-        errorMessage { "${validationPath()} must not be in range ${validationParams.range}" },
+        { "${validationPath()} must not be in range ${validationParams.range}" },
 ): ValidationRule<V, OutsideRange.Key, OutsideRange.Params<V>> =
     OutsideRange(range).toValidationRule(errorDetailsBuilder)

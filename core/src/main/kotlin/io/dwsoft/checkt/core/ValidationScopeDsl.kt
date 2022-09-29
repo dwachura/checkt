@@ -23,11 +23,11 @@ fun <T> validate(
 class ValidationScopeDsl {
     /**
      * Opens and returns a new, [named][namedAs] [scope][ValidationScope]
-     * enclosed into contextual scope, used to validate value, that is passed to this
-     * function as a receiver.
+     * enclosed into contextual scope, used to validate value, that is a receiver
+     * of this function.
      *
-     * Validation block (containing validation logic) runs in a context of the new
-     * scope and [validation DSL][ValidationScopeDsl].
+     * [Validation block][validation] (containing validation logic) runs in a context
+     * of the new scope and [validation DSL][ValidationScopeDsl].
      *
      * @throws [IllegalArgumentException] when [namedAs] is blank.
      */
@@ -37,10 +37,7 @@ class ValidationScopeDsl {
         validation: context (ValidationScope, ValidationScopeDsl) T.() -> Unit,
     ): ValidationScope {
         require(namedAs.isNotBlank()) { "Name cannot be blank for enclosed scopes" }
-        return validateInEnclosedScope(
-            NamingPath.Segment.Name(namedAs),
-            validation
-        )
+        return validateInEnclosedScope(NamingPath.Segment.Name(namedAs), validation)
     }
 
     context (ValidationScope)
@@ -74,13 +71,48 @@ class ValidationScopeDsl {
     ): ValidationError<V, K, P>? =
         checkAgainst(rule)
 
-    // TODO: kdoc
+    /**
+     * Returns a list of [indexed][NamingPath.Segment.Index] [scopes][ValidationScope]
+     * enclosed into contextual scope opened for each element contained into iterable that
+     * is a receiver of this function.
+     *
+     * New scopes are indexed according to their position in the iterable.
+     *
+     * [Validation block][validation] (containing validation logic) runs in a context of
+     * the new scope and [validation DSL][ValidationScopeDsl]. Index of validated element
+     * is passed to the block via parameter.
+     */
     context (ValidationScope)
     fun <T> Iterable<T>.eachElement(
-        validation: context (ValidationScope, ValidationScopeDsl) T.() -> Unit,
-    ) =
-        forEachIndexed { idx, value ->
-            val indexSegment = NamingPath.Segment.Index(idx.toString())
-            value.validateInEnclosedScope(indexSegment, validation)
+        validation: context (ValidationScope, ValidationScopeDsl) T.(index: Int) -> Unit,
+    ): List<ValidationScope> =
+        mapIndexed { idx, value ->
+            val indexSegment = NamingPath.Segment.Index(idx)
+            enclose(indexSegment).apply {
+                validation(ValidationScopeDsl(), value, idx)
+            }
         }
+
+    /**
+     * Returns a map of [indexed][NamingPath.Segment.Index] [scopes][ValidationScope]
+     * enclosed into contextual scope opened for each entry of the map that is passed
+     * a receiver of this function.
+     *
+     * New scopes are indexed with entry key transformed by the given [transforming function]
+     * [indexedUsingKeysTransformedBy].
+     *
+     * [Validation block][validation] (containing validation logic) runs in a context of
+     * the new scope and [validation DSL][ValidationScopeDsl].
+     */
+    context (ValidationScope)
+    fun <K, V> Map<K, V>.eachEntry(
+        indexedUsingKeysTransformedBy: (key: K) -> String,
+        validation: context (ValidationScope, ValidationScopeDsl) Map.Entry<K, V>.() -> Unit,
+    ): Map<K, ValidationScope> =
+        map {
+            val key = it.key
+            val indexSegment = NamingPath.Segment.Index(indexedUsingKeysTransformedBy(key))
+            val newScope = it.validateInEnclosedScope(indexSegment, validation)
+            key to newScope
+        }.toMap()
 }

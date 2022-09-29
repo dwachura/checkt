@@ -13,10 +13,22 @@ sealed interface NamingPath {
             override val value: String = ""
         }
 
-        data class Name(override val value: String) : Segment
+        data class Name(override val value: String) : Segment {
+            init {
+                require(value.isNotBlank()) { "Name of path segment cannot be blank" }
+            }
+        }
 
         data class Index(val rawValue: String) : Segment {
+            constructor(number: Int) : this(number.toString()) {
+                require(number >= 0) { "Numeric index cannot be negative" }
+            }
+
             override val value: String = "[$rawValue]"
+
+            init {
+                require(rawValue.isNotBlank()) { "Index of path segment cannot be blank" }
+            }
         }
     }
 
@@ -28,6 +40,8 @@ val NamingPath.Companion.unnamed: NamingPath
 
 fun NamingPath.Companion.named(name: Segment.Name): NamingPath = NamingPath(name)
 
+fun NamingPath.Companion.named(name: String): NamingPath = named(Segment.Name(name))
+
 operator fun NamingPath.plus(segment: Segment): NamingPath =
     when (segment) {
         Segment.Empty -> this
@@ -38,15 +52,15 @@ operator fun NamingPath.plus(segment: Segment): NamingPath =
         }
     }
 
-fun NamingPath.fold(joiningSegments: (String, String) -> String): String =
+fun NamingPath.joinToString(joiner: (String, String) -> String = { s1, s2 -> "$s1.$s2" }): String =
     tail?.let {
-        val tailDisplay = it.fold(joiningSegments)
+        val tailDisplay = it.joinToString(joiner)
         val headDisplay = head.value
         when {
             tailDisplay.isEmpty() -> headDisplay
             head is Segment.Empty -> tailDisplay
             head is Segment.Index -> "$tailDisplay$headDisplay"
-            else -> joiningSegments(tailDisplay, headDisplay)
+            else -> joiner(tailDisplay, headDisplay)
         }
     } ?: head.value
 
@@ -55,10 +69,13 @@ fun NamingPath.lastToken(): String =
         is Segment.Empty, is Segment.Name -> head.value
         else -> {
             tail?.let {
-                lastToken() + head.value
+                it.lastToken() + head.value
             } ?: head.value
         }
     }
+
+fun NamingPath.toList(): List<Segment> =
+    (tail?.toList() ?: emptyList()) + head
 
 private fun NamingPath(head: Segment, tail: NamingPath? = null): NamingPath =
     NamingPathImpl(head, tail)

@@ -4,8 +4,6 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.errorMessage
-import io.dwsoft.checkt.core.toDisplayed
 import io.dwsoft.checkt.core.toValidationRule
 
 class Pattern(private val regex: Regex) :
@@ -23,6 +21,6 @@ class Pattern(private val regex: Regex) :
 fun matchRegex(
     regex: Regex,
     errorDetailsBuilder: ErrorDetailsBuilder<CharSequence, Pattern.Key, Pattern.Params> =
-        errorMessage { "${validationPath()} must match regex '${validationParams.regex}'" },
+        { "${validationPath()} must match regex '${validationParams.regex}'" },
 ): ValidationRule<CharSequence, Pattern.Key, Pattern.Params> =
     Pattern(regex).toValidationRule(errorDetailsBuilder)

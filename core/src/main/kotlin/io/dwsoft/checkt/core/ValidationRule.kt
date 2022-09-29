@@ -17,17 +17,12 @@ class ErrorDetailsBuilderContext<V, K : Check.Key, P : Check.Params> internal co
         get() = violatedCheck.params
 
     operator fun NamingPath.invoke(separator: String = "."): String =
-        validationPath.fold { acc, str -> "$acc$separator$str" }
+        validationPath.joinToString { acc, str -> "$acc$separator$str" }
 }
 
-typealias ErrorDetailsBuilder<V, K, P> = ErrorDetailsBuilderContext<V, K, P>.() -> Displayed
+typealias ErrorDetailsBuilder<V, K, P> = ErrorDetailsBuilderContext<V, K, P>.() -> String
 
 fun <V, K : Check.Key, P : Check.Params> Check<V, K, P>.toValidationRule(
     errorDetailsBuilder: ErrorDetailsBuilder<V, K, P>
 ): ValidationRule<V, K, P>
     = ValidationRule(this, errorDetailsBuilder)
-
-fun <V, K : Check.Key, P : Check.Params> errorMessage(
-    block: ErrorDetailsBuilderContext<V, K, P>.() -> String
-): ErrorDetailsBuilder<V, K, P> =
-    { block(this).toDisplayed() }

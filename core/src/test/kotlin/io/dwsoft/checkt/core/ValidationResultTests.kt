@@ -2,37 +2,52 @@ package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationResult.Failure
 import io.dwsoft.checkt.core.ValidationResult.Success
+import io.dwsoft.checkt.testing.forAll
 import io.kotest.core.spec.style.StringSpec
-import io.kotest.data.blocking.forAll
-import io.kotest.data.row
 import io.kotest.matchers.shouldBe
+import io.kotest.property.Exhaustive
+import io.kotest.property.exhaustive.of
 import io.mockk.mockk
 
 class ValidationResultTests : StringSpec({
-    "merge of successes is success" {
-        Success plus Success shouldBe Success
-    }
-
-    "merge of success and failure results in failure" {
-        val failure = Failure(validationError())
-        forAll(
-            row(Success, failure),
-            row(failure, Success),
-        ) { r1, r2 ->
-            r1 plus r2 shouldBe failure
-        }
-    }
-
-    "merge of failures is failure containing both error sets" {
-        val failure1 = Failure(validationError())
-        val failure2 = Failure(validationError(), validationError())
-        forAll(
-            row(failure1, failure2),
-            row(failure2, failure1),
-        ) { r1, r2 ->
-            r1 plus r2 shouldBe Failure(r1.errors + r2.errors)
+    "Results can be merged" {
+        forAll(resultMergingCases()) {
+            when {
+                left is Success && right is Success ->
+                    left + right shouldBe Success
+                left is Success && right is Failure ->
+                    left + right shouldBe failure(withErrorsOf = right)
+                left is Failure && right is Success ->
+                    left + right shouldBe failure(withErrorsOf = left)
+                left is Failure && right is Failure ->
+                    left + right shouldBe failure(withErrorsOf = listOf(left, right))
+            }
         }
     }
 })
+
+private fun resultMergingCases(): Exhaustive<MergingCase> =
+    Exhaustive.of(
+        Success to Success,
+        Success to failure(),
+        failure() to Success,
+        failure() to failure()
+    )
+
+private data class MergingCase(
+    val left: ValidationResult,
+    val right: ValidationResult,
+)
+
+private infix fun ValidationResult.to(right: ValidationResult): MergingCase =
+    MergingCase(this, right)
+
+private fun failure(withErrorsOf: List<Failure> = emptyList()): Failure =
+    when {
+        withErrorsOf.isEmpty() -> Failure(validationError())
+        else -> Failure(withErrorsOf.flatMap { it.errors })
+    }
+
+private fun failure(withErrorsOf: Failure): Failure = failure(listOf(withErrorsOf))
 
 private fun validationError() = mockk<ValidationError<*, *, *>>()

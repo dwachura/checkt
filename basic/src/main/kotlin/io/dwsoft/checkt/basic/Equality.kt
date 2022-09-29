@@ -4,7 +4,6 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.errorMessage
 import io.dwsoft.checkt.core.toValidationRule
 
 class Equals<V>(private val other: V) : Check<V, Equals.Key, Equals.Params<V>> {
@@ -20,7 +19,7 @@ class Equals<V>(private val other: V) : Check<V, Equals.Key, Equals.Params<V>> {
 fun <V> beEqualTo(
     other: V,
     errorDetailsBuilder: ErrorDetailsBuilder<V, Equals.Key, Equals.Params<V>> =
-        errorMessage { "${validationPath()} must equal to ${validationParams.other}" },
+        { "${validationPath()} must equal to ${validationParams.other}" },
 ): ValidationRule<V, Equals.Key, Equals.Params<V>> =
     Equals(other).toValidationRule(errorDetailsBuilder)
 
@@ -37,6 +36,6 @@ class IsDifferent<V>(private val other: V) : Check<V, IsDifferent.Key, IsDiffere
 fun <V> beDifferentThan(
     other: V,
     errorDetailsBuilder: ErrorDetailsBuilder<V, IsDifferent.Key, IsDifferent.Params<V>> =
-        errorMessage { "${validationPath()} must be different than ${validationParams.other}" },
+        { "${validationPath()} must be different than ${validationParams.other}" },
 ): ValidationRule<V, IsDifferent.Key, IsDifferent.Params<V>> =
     IsDifferent(other).toValidationRule(errorDetailsBuilder)

@@ -4,8 +4,6 @@ import io.dwsoft.checkt.core.NamingPath.Segment
 
 // TODO:
 //  * MOAR TESTS!!!
-//  * create DSL methods
-//  * collection validation (info about index/place of invalid element)
 //  * support for suspension (for translation [and validation/checks ???])
 //  * interface Validator for DTOs (idea for later ???)
 //  * lazy scope (evaluated when result called) ???
@@ -57,6 +55,7 @@ class ValidationScope private constructor(
         }
 
     private val errors: MutableList<ValidationError<*, *, *>> = mutableListOf()
+    private val valueValidationIdentityKeys: MutableList<ValueValidationIdentityKey<*, *>> = mutableListOf()
     private val enclosedScopes: MutableList<ValidationScope> = mutableListOf()
 
     /**
@@ -87,8 +86,35 @@ class ValidationScope private constructor(
                 val errorDetails = errorDetailsBuilder(errorDetailsBuilderContext)
                 ValidationError(value, check.context, validationPath, errorDetails)
             }
-            ?.also { errors.add(it) }
+            ?.also { error ->
+                val valueValidationId = ValueValidationIdentityKey(this, validationPath, check.context.key)
+                val wasDuplicatedValueValidationDetected =
+                    valueValidationIdentityKeys.firstOrNull { it == valueValidationId }
+                        ?.let { true }
+                        ?: false
+                if (wasDuplicatedValueValidationDetected) {
+                    throw duplicatedValueValidationException(valueValidationId)
+                }
+                valueValidationIdentityKeys.add(valueValidationId)
+                errors.add(error)
+            }
     }
 }
 
 fun ValidationScope.throwIfFailure() = result.throwIfFailure()
+
+private data class ValueValidationIdentityKey<V, K : Check.Key>(
+    val value: V,
+    val path: NamingPath,
+    val checkKey: K,
+)
+
+private fun duplicatedValueValidationException(
+    valueValidationId: ValueValidationIdentityKey<*, *>
+): IllegalStateException =
+    with(valueValidationId) {
+        IllegalStateException(
+            "Value $value (validation path: $path) violated the same check " +
+                    "(key: $checkKey) twice - check your validation configuration"
+        )
+    }

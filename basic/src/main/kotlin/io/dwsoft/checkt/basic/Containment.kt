@@ -4,7 +4,6 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.errorMessage
 import io.dwsoft.checkt.core.toValidationRule
 
 class ContainsAny<V>(elements: Collection<V>) :
@@ -23,7 +22,7 @@ class ContainsAny<V>(elements: Collection<V>) :
 fun <V> containAnyOf(
     vararg elements: V,
     errorDetailsBuilder: ErrorDetailsBuilder<Collection<V>, ContainsAny.Key, ContainsAny.Params<V>> =
-        errorMessage { "${validationPath()} must contain any of ${validationParams.elements}" },
+        { "${validationPath()} must contain any of ${validationParams.elements}" },
 ): ValidationRule<Collection<V>, ContainsAny.Key, ContainsAny.Params<V>> =
     ContainsAny(elements.toList()).toValidationRule(errorDetailsBuilder)
 
@@ -53,6 +52,6 @@ class ContainsAll<V>(elements: Collection<V>) :
 fun <V> containAllOf(
     vararg elements: V,
     errorDetailsBuilder: ErrorDetailsBuilder<Collection<V>, ContainsAll.Key, ContainsAll.Params<V>> =
-        errorMessage { "${validationPath()} must contain all of ${validationParams.elements}" },
+        { "${validationPath()} must contain all of ${validationParams.elements}" },
 ): ValidationRule<Collection<V>, ContainsAll.Key, ContainsAll.Params<V>> =
     ContainsAll(elements.toList()).toValidationRule(errorDetailsBuilder)

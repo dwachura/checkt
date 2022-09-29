@@ -21,6 +21,9 @@ sealed class ValidationResult {
     }
 }
 
+fun Failure.errorMessages(): List<String> =
+    errors.map { it.errorDetails }
+
 fun List<ValidationError<*, *, *>>.toValidationResult(): ValidationResult =
     if (this.isEmpty()) Success else Failure(this)
 
@@ -32,7 +35,5 @@ fun ValidationResult.throwIfFailure(): Unit =
         Success -> Unit
     }
 
-fun ValidationFailure.errorMessages(
-    transformer: (Displayed) -> String = { it.value }
-): List<String> =
-    errors.map { transformer(it.errorDetails) }
+fun ValidationFailure.errorMessages(): List<String> =
+    errors.map { it.errorDetails }

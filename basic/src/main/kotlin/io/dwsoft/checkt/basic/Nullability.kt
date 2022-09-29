@@ -4,11 +4,10 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.Check.Params.None
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
-import io.dwsoft.checkt.core.ValidationScopeDsl
 import io.dwsoft.checkt.core.ValidationError
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationScope
-import io.dwsoft.checkt.core.errorMessage
+import io.dwsoft.checkt.core.ValidationScopeDsl
 import io.dwsoft.checkt.core.toValidationRule
 
 class NonNull<T : Any?> : Check<T, NonNull.Key, None> {
@@ -22,7 +21,7 @@ class NonNull<T : Any?> : Check<T, NonNull.Key, None> {
 
 fun <V> notBeNull(
     errorDetailsBuilder: ErrorDetailsBuilder<V, NonNull.Key, None> =
-        errorMessage { "${validationPath()} must not be null" },
+        { "${validationPath()} must not be null" },
 ): ValidationRule<V, NonNull.Key, None> =
     NonNull<V>().toValidationRule(errorDetailsBuilder)
 
@@ -44,6 +43,6 @@ class IsNull<T : Any?> : Check<T, IsNull.Key, None> {
 
 fun <V> beNull(
     errorDetailsBuilder: ErrorDetailsBuilder<V, IsNull.Key, None> =
-        errorMessage { "${validationPath()} must be null" },
+        { "${validationPath()} must be null" },
 ): ValidationRule<V, IsNull.Key, None> =
     IsNull<V>().toValidationRule(errorDetailsBuilder)

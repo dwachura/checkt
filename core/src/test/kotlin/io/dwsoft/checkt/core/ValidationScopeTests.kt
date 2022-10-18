@@ -1,6 +1,6 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.NamingPath.Segment.Name
+import io.dwsoft.checkt.core.ValidationPath.Segment.Name
 import io.dwsoft.checkt.testing.alwaysFail
 import io.dwsoft.checkt.testing.alwaysFailingRule
 import io.dwsoft.checkt.testing.alwaysPassingRule
@@ -27,7 +27,7 @@ class ValidationScopeTests : StringSpec({
         val failingRule = alwaysFail { "$value" }
         val validatedValues = listOf("v1", "v2")
         val expectedErrors = validatedValues.map {
-            ValidationError(it, failingRule.context, NamingPath.unnamed, it)
+            ValidationError(it, failingRule.context, ValidationPath.unnamed, it)
         }
 
         with(validationScope) {

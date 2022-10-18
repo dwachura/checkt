@@ -15,7 +15,7 @@ fun <T> validate(
 ): ValidationScope =
     when {
         namedAs.isNullOrBlank() -> ValidationScope()
-        else -> ValidationScope(NamingPath.Segment.Name(namedAs))
+        else -> ValidationScope(ValidationPath.Segment.Name(namedAs))
     }.apply {
         validation(ValidationScopeDsl(), value)
     }
@@ -37,12 +37,12 @@ class ValidationScopeDsl {
         validation: context (ValidationScope, ValidationScopeDsl) T.() -> Unit,
     ): ValidationScope {
         require(namedAs.isNotBlank()) { "Name cannot be blank for enclosed scopes" }
-        return validateInEnclosedScope(NamingPath.Segment.Name(namedAs), validation)
+        return validateInEnclosedScope(ValidationPath.Segment.Name(namedAs), validation)
     }
 
     context (ValidationScope)
     private fun <T> T.validateInEnclosedScope(
-        namedAs: NamingPath.Segment,
+        namedAs: ValidationPath.Segment,
         validation: context (ValidationScope, ValidationScopeDsl) T.() -> Unit,
     ): ValidationScope =
         enclose(namedAs).apply {
@@ -72,7 +72,7 @@ class ValidationScopeDsl {
         checkAgainst(rule)
 
     /**
-     * Returns a list of [indexed][NamingPath.Segment.Index] [scopes][ValidationScope]
+     * Returns a list of [indexed][validationPath.Segment.Index] [scopes][ValidationScope]
      * enclosed into contextual scope opened for each element contained into iterable that
      * is a receiver of this function.
      *
@@ -87,14 +87,14 @@ class ValidationScopeDsl {
         validation: context (ValidationScope, ValidationScopeDsl) T.(index: Int) -> Unit,
     ): List<ValidationScope> =
         mapIndexed { idx, value ->
-            val indexSegment = NamingPath.Segment.Index(idx)
+            val indexSegment = ValidationPath.Segment.Index(idx)
             enclose(indexSegment).apply {
                 validation(ValidationScopeDsl(), value, idx)
             }
         }
 
     /**
-     * Returns a map of [indexed][NamingPath.Segment.Index] [scopes][ValidationScope]
+     * Returns a map of [indexed][validationPath.Segment.Index] [scopes][ValidationScope]
      * enclosed into contextual scope opened for each entry of the map that is passed
      * a receiver of this function.
      *
@@ -111,7 +111,7 @@ class ValidationScopeDsl {
     ): Map<K, ValidationScope> =
         map {
             val key = it.key
-            val indexSegment = NamingPath.Segment.Index(indexedUsingKeysTransformedBy(key))
+            val indexSegment = ValidationPath.Segment.Index(indexedUsingKeysTransformedBy(key))
             val newScope = it.validateInEnclosedScope(indexSegment, validation)
             key to newScope
         }.toMap()

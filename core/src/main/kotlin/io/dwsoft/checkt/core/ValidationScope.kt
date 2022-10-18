@@ -1,6 +1,6 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.NamingPath.Segment
+import io.dwsoft.checkt.core.ValidationPath.Segment
 
 // TODO:
 //  * MOAR TESTS!!!
@@ -9,7 +9,7 @@ import io.dwsoft.checkt.core.NamingPath.Segment
 //  * lazy scope (evaluated when result called) ???
 
 class ValidationScope private constructor(
-    namingSegment: Segment,
+    validationPathSegment: Segment,
     enclosingScope: ValidationScope? = null,
 ) {
     /**
@@ -22,12 +22,12 @@ class ValidationScope private constructor(
      */
     constructor(name: Segment.Name) : this(name, null)
 
-    val validationPath: NamingPath =
+    val validationPath: ValidationPath =
         when (enclosingScope) {
             null -> {
-                when (namingSegment) {
-                    Segment.Empty -> NamingPath.unnamed
-                    is Segment.Name -> NamingPath.named(namingSegment)
+                when (validationPathSegment) {
+                    Segment.Empty -> ValidationPath.unnamed
+                    is Segment.Name -> ValidationPath.named(validationPathSegment)
                     is Segment.Index ->
                         // in normal circumstances this cannot happen, as a correct
                         // root segment usage is enforced by public constructors
@@ -36,7 +36,7 @@ class ValidationScope private constructor(
                         )
                 }
             }
-            else -> enclosingScope.validationPath + namingSegment
+            else -> enclosingScope.validationPath + validationPathSegment
         }
 
     val result: ValidationResult
@@ -63,7 +63,7 @@ class ValidationScope private constructor(
      * scope [path][ValidationScope.validationPath].
      *
      * @throws [IllegalArgumentException] when there's already enclosed scope with the same
-     * [name][NamingPath.lastToken].
+     * [name][validationPath.lastToken].
      */
     fun enclose(segment: Segment): ValidationScope =
         enclosedScopes.find { it.validationPath.head == segment }?.let {
@@ -105,7 +105,7 @@ fun ValidationScope.throwIfFailure() = result.throwIfFailure()
 
 private data class ValueValidationIdentityKey<V, K : Check.Key>(
     val value: V,
-    val path: NamingPath,
+    val path: ValidationPath,
     val checkKey: K,
 )
 

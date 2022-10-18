@@ -10,13 +10,13 @@ class ValidationRule<V, K : Check.Key, P : Check.Params>(
 
 class ErrorDetailsBuilderContext<V, K : Check.Key, P : Check.Params> internal constructor(
     val value: V,
-    val validationPath: NamingPath,
+    val validationPath: ValidationPath,
     private val violatedCheck: Check.Context<K, P>,
 ) {
     val validationParams: P
         get() = violatedCheck.params
 
-    operator fun NamingPath.invoke(separator: String = "."): String =
+    operator fun ValidationPath.invoke(separator: String = "."): String =
         validationPath.joinToString { acc, str -> "$acc$separator$str" }
 }
 

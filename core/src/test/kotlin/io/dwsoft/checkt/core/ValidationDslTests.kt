@@ -43,7 +43,7 @@ class ValidationDslTests : StringSpec({
     }
 
     "Nested object's properties can be validated" {
-        var path: NamingPath = NamingPath.unnamed
+        var path: ValidationPath = ValidationPath.unnamed
         val validation = validate(root) {
             path = complexValue!!.invoke(namedAs = "nested") {
                 simpleValue must alwaysFailWithMessage { "1" }
@@ -58,7 +58,7 @@ class ValidationDslTests : StringSpec({
     }
 
     "Elements of iterable properties can be validated" {
-        var paths: List<NamingPath> = emptyList()
+        var paths: List<ValidationPath> = emptyList()
         val validation = validate(root) {
             ::collection {
                 paths = eachElement { idx ->
@@ -74,7 +74,7 @@ class ValidationDslTests : StringSpec({
     }
 
     "Entries of maps can be validated" {
-        var paths: Map<Double, NamingPath> = emptyMap()
+        var paths: Map<Double, ValidationPath> = emptyMap()
         val validation = validate(root) {
             ::map {
                 paths = eachEntry(indexedUsingKeysTransformedBy = { it.toString() }) {

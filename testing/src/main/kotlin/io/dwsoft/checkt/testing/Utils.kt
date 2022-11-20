@@ -4,7 +4,9 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
 import io.dwsoft.checkt.core.ValidationResult.Failure
 import io.dwsoft.checkt.core.ValidationScope
+import io.dwsoft.checkt.core.checkKey
 import io.dwsoft.checkt.core.joinToString
+import io.dwsoft.checkt.core.key
 import io.dwsoft.checkt.core.toList
 import io.dwsoft.checkt.core.unnamed
 import io.kotest.assertions.asClue
@@ -15,16 +17,19 @@ import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import io.kotest.property.Gen
 import io.kotest.property.checkAll
-import kotlin.reflect.KClass
 
 infix fun <V> V.shouldPass(check: Check<V, *, *>) =
-    "Value '$this' should pass check ${check.context}".asClue {
-        check(this) shouldBe true
+    "Value '$this' should pass check ${check.key.fullIdentifier}".asClue {
+        "${check.params}".asClue {
+            check(this) shouldBe true
+        }
     }
 
 infix fun <V> V.shouldNotPass(check: Check<V, *, *>) =
-    "Value '$this' should not pass check ${check.context}".asClue {
-        check(this) shouldBe false
+    "Value '$this' should not pass check ${check.key.fullIdentifier}".asClue {
+        "${check.params}".asClue {
+            check(this) shouldBe false
+        }
     }
 
 suspend fun <T> forAll(cases: Gen<T>, verify: T.() -> Unit) {
@@ -47,7 +52,7 @@ fun ValidationScope.shouldFailBecause(vararg violations: Violation<*>) {
             assertSoftly {
                 violations.forEach { violation ->
                     val (expectedValue, expectedPath) = violation
-                    val expectedCheckType = violation.checkClass.simpleName
+                    val expectedCheckType = violation.check.shortIdentifier
                     val readableExpectedPath = expectedPath.joinToString()
                     val maybeError = errors.firstOrNull {
                         it.validationPath == expectedPath
@@ -66,7 +71,7 @@ fun ValidationScope.shouldFailBecause(vararg violations: Violation<*>) {
 data class Violation<C : Check<*, *, *>>(
     val value: Any?,
     val path: ValidationPath,
-    val checkClass: KClass<C>,
+    val check: Check.Key<C>,
     val errorMessageAssertions: (String) -> Unit,
 )
 
@@ -74,13 +79,13 @@ inline fun <reified C : Check<*, *, *>> Any?.violated(
     underPath: ValidationPath = ValidationPath.unnamed,
     noinline withMessageThat: (String) -> Unit = {},
 ): Violation<C> =
-    Violation(this, underPath, C::class, withMessageThat)
+    Violation(this, underPath, C::class.checkKey(), withMessageThat)
 
 inline fun <reified C : Check<*, *, *>> Any?.violated(
     underPath: ValidationPath = ValidationPath.unnamed,
     withMessage: String,
 ): Violation<C> =
-    Violation(this, underPath, C::class) { it shouldBe withMessage }
+    Violation(this, underPath, C::class.checkKey()) { it shouldBe withMessage }
 
 
 

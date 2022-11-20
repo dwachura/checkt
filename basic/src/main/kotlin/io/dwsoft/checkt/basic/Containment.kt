@@ -1,35 +1,33 @@
 package io.dwsoft.checkt.basic
 
 import io.dwsoft.checkt.core.Check
-import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.toValidationRule
 
 class ContainsAny<V>(elements: Collection<V>) :
-    Check<Collection<V>, ContainsAny.Key, ContainsAny.Params<V>>
+    Check<Collection<V>, ContainsAny.Params<V>, ContainsAny<V>>
 {
     private val elements = elements.toSet()
-    override val context = Context.of(Key, Params(this.elements))
+    override val params = Params(this.elements)
 
     override fun invoke(value: Collection<V>): Boolean =
         value.any { elements.contains(it) }
 
-    object Key : Check.Key
-    data class Params<V>(val elements: Collection<V>) : Check.Params()
+    data class Params<V>(val elements: Collection<V>) : Check.Params<ContainsAny<V>>()
 }
 
 fun <V> containAnyOf(
     vararg elements: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<Collection<V>, ContainsAny.Key, ContainsAny.Params<V>> =
+    errorDetailsBuilder: ErrorDetailsBuilder<ContainsAny<V>, Collection<V>, ContainsAny.Params<V>> =
         { "${validationPath()} must contain any of ${validationParams.elements}" },
-): ValidationRule<Collection<V>, ContainsAny.Key, ContainsAny.Params<V>> =
+): ValidationRule<ContainsAny<V>, Collection<V>, ContainsAny.Params<V>> =
     ContainsAny(elements.toList()).toValidationRule(errorDetailsBuilder)
 
 class ContainsAll<V>(elements: Collection<V>) :
-    Check<Collection<V>, ContainsAll.Key, ContainsAll.Params<V>>
+    Check<Collection<V>, ContainsAll.Params<V>, ContainsAll<V>>
 {
-    override val context = Context.of(Key, Params(elements))
+    override val params = Params(elements)
     private val elementQuantities = countDistinct(elements)
 
     override fun invoke(value: Collection<V>): Boolean = value.containsAllElements()
@@ -45,13 +43,12 @@ class ContainsAll<V>(elements: Collection<V>) :
         return collection.groupingBy { it }.eachCount()
     }
 
-    object Key : Check.Key
-    data class Params<V>(val elements: Collection<V>) : Check.Params()
+    data class Params<V>(val elements: Collection<V>) : Check.Params<ContainsAll<V>>()
 }
 
 fun <V> containAllOf(
     vararg elements: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<Collection<V>, ContainsAll.Key, ContainsAll.Params<V>> =
+    errorDetailsBuilder: ErrorDetailsBuilder<ContainsAll<V>, Collection<V>, ContainsAll.Params<V>> =
         { "${validationPath()} must contain all of ${validationParams.elements}" },
-): ValidationRule<Collection<V>, ContainsAll.Key, ContainsAll.Params<V>> =
+): ValidationRule<ContainsAll<V>, Collection<V>, ContainsAll.Params<V>> =
     ContainsAll(elements.toList()).toValidationRule(errorDetailsBuilder)

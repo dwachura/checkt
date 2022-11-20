@@ -66,13 +66,13 @@ class ValidationScopeDsl {
      * Returns [error][ValidationError] or null if the value conform to the given rule.
      */
     context (ValidationScope)
-    infix fun <V : Any?, K : Check.Key, P : Check.Params> V.must(
-        rule: ValidationRule<V, K, P>
-    ): ValidationError<V, K, P>? =
+    infix fun <C : Check<V, P, C>, V : Any?, P : Check.Params<C>> V.must(
+        rule: ValidationRule<C, V, P>
+    ): ValidationError<C, V, P>? =
         checkAgainst(rule)
 
     /**
-     * Returns a list of [indexed][validationPath.Segment.Index] [scopes][ValidationScope]
+     * Returns a list of [indexed][ValidationPath.Segment.Index] [scopes][ValidationScope]
      * enclosed into contextual scope opened for each element contained into iterable that
      * is a receiver of this function.
      *
@@ -94,7 +94,7 @@ class ValidationScopeDsl {
         }
 
     /**
-     * Returns a map of [indexed][validationPath.Segment.Index] [scopes][ValidationScope]
+     * Returns a map of [indexed][ValidationPath.Segment.Index] [scopes][ValidationScope]
      * enclosed into contextual scope opened for each entry of the map that is passed
      * a receiver of this function.
      *

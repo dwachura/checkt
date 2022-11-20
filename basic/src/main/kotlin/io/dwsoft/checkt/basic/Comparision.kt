@@ -1,83 +1,78 @@
 package io.dwsoft.checkt.basic
 
 import io.dwsoft.checkt.core.Check
-import io.dwsoft.checkt.core.Check.Context
 import io.dwsoft.checkt.core.ErrorDetailsBuilder
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.toValidationRule
 
 class LessThan<V>(private val max: V) :
-    Check<Comparable<V>, LessThan.Key, LessThan.Params<V>>
+    Check<Comparable<V>, LessThan.Params<V>, LessThan<V>>
 {
-    override val context = Context.of(Key, Params(max))
+    override val params = Params(max)
 
     override fun invoke(value: Comparable<V>): Boolean =
         value < max
 
-    object Key : Check.Key
-    data class Params<V>(val max: V) : Check.Params()
+    data class Params<V>(val max: V) : Check.Params<LessThan<V>>()
 }
 
 fun <V : Comparable<V>> beLessThan(
     max: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<V, LessThan.Key, LessThan.Params<V>> =
+    errorDetailsBuilder: ErrorDetailsBuilder<LessThan<V>, V, LessThan.Params<V>> =
         { "${validationPath()} must be less than ${validationParams.max}" },
-): ValidationRule<V, LessThan.Key, LessThan.Params<V>> =
+): ValidationRule<LessThan<V>, V, LessThan.Params<V>> =
     LessThan(max).toValidationRule(errorDetailsBuilder)
 
 class LessThanOrEqual<V>(private val max: V) :
-    Check<Comparable<V>, LessThanOrEqual.Key, LessThanOrEqual.Params<V>>
+    Check<Comparable<V>, LessThanOrEqual.Params<V>, LessThanOrEqual<V>>
 {
-    override val context = Context.of(Key, Params(max))
+    override val params = Params(max)
 
     override fun invoke(value: Comparable<V>): Boolean =
         value <= max
 
-    object Key : Check.Key
-    data class Params<V>(val max: V) : Check.Params()
+    data class Params<V>(val max: V) : Check.Params<LessThanOrEqual<V>>()
 }
 
 fun <V : Comparable<V>> notBeGreaterThan(
     max: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<V, LessThanOrEqual.Key, LessThanOrEqual.Params<V>> =
+    errorDetailsBuilder: ErrorDetailsBuilder<LessThanOrEqual<V>, V, LessThanOrEqual.Params<V>> =
         { "${validationPath()} must not be greater than ${validationParams.max}" },
-): ValidationRule<V, LessThanOrEqual.Key, LessThanOrEqual.Params<V>> =
+): ValidationRule<LessThanOrEqual<V>, V, LessThanOrEqual.Params<V>> =
     LessThanOrEqual(max).toValidationRule(errorDetailsBuilder)
 
 class GreaterThan<V>(private val min: V) :
-    Check<Comparable<V>, GreaterThan.Key, GreaterThan.Params<V>>
+    Check<Comparable<V>, GreaterThan.Params<V>, GreaterThan<V>>
 {
-    override val context = Context.of(Key, Params(min))
+    override val params = Params(min)
 
     override fun invoke(value: Comparable<V>): Boolean =
         value > min
 
-    object Key : Check.Key
-    data class Params<V>(val min: V) : Check.Params()
+    data class Params<V>(val min: V) : Check.Params<GreaterThan<V>>()
 }
 
 fun <V : Comparable<V>> beGreaterThan(
     min: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<V, GreaterThan.Key, GreaterThan.Params<V>> =
+    errorDetailsBuilder: ErrorDetailsBuilder<GreaterThan<V>, V, GreaterThan.Params<V>> =
         { "${validationPath()} must be greater than ${validationParams.min}" },
-): ValidationRule<V, GreaterThan.Key, GreaterThan.Params<V>> =
+): ValidationRule<GreaterThan<V>, V, GreaterThan.Params<V>> =
     GreaterThan(min).toValidationRule(errorDetailsBuilder)
 
 class GreaterThanOrEqual<V>(private val min: V) :
-    Check<Comparable<V>, GreaterThanOrEqual.Key, GreaterThanOrEqual.Params<V>>
+    Check<Comparable<V>, GreaterThanOrEqual.Params<V>, GreaterThanOrEqual<V>>
 {
-    override val context = Context.of(Key, Params(min))
+    override val params = Params(min)
 
     override fun invoke(value: Comparable<V>): Boolean =
         value >= min
 
-    object Key : Check.Key
-    data class Params<V>(val min: V) : Check.Params()
+    data class Params<V>(val min: V) : Check.Params<GreaterThanOrEqual<V>>()
 }
 
 fun <V : Comparable<V>> notBeLessThan(
     min: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<V, GreaterThanOrEqual.Key, GreaterThanOrEqual.Params<V>> =
+    errorDetailsBuilder: ErrorDetailsBuilder<GreaterThanOrEqual<V>, V, GreaterThanOrEqual.Params<V>> =
         { "${validationPath()} must not be less than ${validationParams.min}" },
-): ValidationRule<V, GreaterThanOrEqual.Key, GreaterThanOrEqual.Params<V>> =
+): ValidationRule<GreaterThanOrEqual<V>, V, GreaterThanOrEqual.Params<V>> =
     GreaterThanOrEqual(min).toValidationRule(errorDetailsBuilder)

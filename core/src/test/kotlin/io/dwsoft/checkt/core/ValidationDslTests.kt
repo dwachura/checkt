@@ -43,50 +43,57 @@ class ValidationDslTests : StringSpec({
     }
 
     "Nested object's properties can be validated" {
-        var path: ValidationPath = ValidationPath.unnamed
+        val expectedPath = validationPath { -"" / "nested" }
         val validation = validate(root) {
-            path = complexValue!!.invoke(namedAs = "nested") {
+            complexValue!!.invoke(namedAs = "nested") {
                 simpleValue must alwaysFailWithMessage { "1" }
                 collection must alwaysFailWithMessage { "2" }
-            }.validationPath
+            }
         }
 
         validation.shouldFailBecause(
-            nested.simpleValue.violated<AlwaysFailingCheck>(underPath = path, withMessage = "1"),
-            nested.collection.violated<AlwaysFailingCheck>(underPath = path, withMessage = "2"),
+            nested.simpleValue.violated<AlwaysFailingCheck>(
+                withMessage = "1",
+                underPath = expectedPath
+            ),
+            nested.collection.violated<AlwaysFailingCheck>(
+                withMessage = "2",
+                underPath = expectedPath
+            ),
         )
     }
 
     "Elements of iterable properties can be validated" {
-        var paths: List<ValidationPath> = emptyList()
         val validation = validate(root) {
             ::collection {
-                paths = eachElement { idx ->
+                eachElement { idx ->
                     this must alwaysFailWithMessage { "$idx" }
-                }.map { it.validationPath }
+                }
             }
         }
         val expectedViolations = root.collection.mapIndexed { idx, elem ->
-            elem.violated<AlwaysFailingCheck>(underPath = paths[idx], withMessage = "$idx")
+            elem.violated<AlwaysFailingCheck>(
+                underPath = validationPath { -"" / "collection"[idx.idx] },
+                withMessage = "$idx"
+            )
         }.toTypedArray()
 
         validation.shouldFailBecause(*expectedViolations)
     }
 
     "Entries of maps can be validated" {
-        var paths: Map<Double, ValidationPath> = emptyMap()
         val validation = validate(root) {
             ::map {
-                paths = eachEntry(indexedUsingKeysTransformedBy = { it.toString() }) {
-                    key must alwaysFailWithMessage { "1-$key" }
-                    value must alwaysFailWithMessage { "2-$key" }
-                }.map { it.key to it.value.validationPath }.toMap()
+                eachEntry(indexedUsingKeysTransformedBy = { "$it" }) {
+                    key must alwaysFailWithMessage { "$key" }
+                    value must alwaysFailWithMessage { "$value" }
+                }
             }
         }
         val expectedViolations = root.map.map { (key, value) ->
-            val expectedPath = paths.getValue(key)
-            key.violated<AlwaysFailingCheck>(underPath = expectedPath, withMessage = "1-$key")
-            value.violated<AlwaysFailingCheck>(underPath = expectedPath, withMessage = "2-$key")
+            val expectedPath = validationPath { -"" / "map"["$key"] }
+            key.violated<AlwaysFailingCheck>(withMessage = "$key", underPath = expectedPath)
+            value.violated<AlwaysFailingCheck>(withMessage = value, underPath = expectedPath)
         }.toTypedArray()
 
         validation.shouldFailBecause(*expectedViolations)

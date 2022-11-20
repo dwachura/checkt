@@ -1,28 +1,33 @@
 package io.dwsoft.checkt.core
 
-class ValidationRule<V, K : Check.Key, P : Check.Params>(
-    val check: Check<V, K, P>,
-    val errorDetailsBuilder: ErrorDetailsBuilder<V, K, P>,
-) {
-    val context: Check.Context<K, P>
-        get() = check.context
-}
+class ValidationRule<C : Check<V, P, C>, V, P : Check.Params<C>>(
+    val check: C,
+    val errorDetailsBuilder: ErrorDetailsBuilder<C, V, P>,
+)
 
-class ErrorDetailsBuilderContext<V, K : Check.Key, P : Check.Params> internal constructor(
+class ErrorDetailsBuilderContext<C : Check<V, P, C>, V, P : Check.Params<C>> internal constructor(
     val value: V,
     val validationPath: ValidationPath,
-    private val violatedCheck: Check.Context<K, P>,
+    check: C,
 ) {
-    val validationParams: P
-        get() = violatedCheck.params
+    val violatedCheck: Check.Key<C> = check.key
+    val validationParams: P = check.params
 
     operator fun ValidationPath.invoke(separator: String = "."): String =
         validationPath.joinToString { acc, str -> "$acc$separator$str" }
 }
 
-typealias ErrorDetailsBuilder<V, K, P> = ErrorDetailsBuilderContext<V, K, P>.() -> String
+typealias ErrorDetailsBuilder<C, V, P> = ErrorDetailsBuilderContext<C, V, P>.() -> String
 
-fun <V, K : Check.Key, P : Check.Params> Check<V, K, P>.toValidationRule(
-    errorDetailsBuilder: ErrorDetailsBuilder<V, K, P>
-): ValidationRule<V, K, P>
+fun <C : Check<V, P, C>, V, P : Check.Params<C>> C.toValidationRule(
+    errorDetailsBuilder: ErrorDetailsBuilder<C, V, P>
+): ValidationRule<C, V, P>
     = ValidationRule(this, errorDetailsBuilder)
+
+data class ValidationContext<C : Check<*, P, C>, P : Check.Params<C>>(
+    val key: Check.Key<C>,
+    val params: P,
+)
+
+val <C : Check<*, P, C>, P : Check.Params<C>> ValidationRule<C, *, P>.validationContext: ValidationContext<C, P>
+    get() = ValidationContext(check.key, check.params)

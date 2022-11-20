@@ -1,7 +1,7 @@
 package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Segment.Name
-import io.dwsoft.checkt.testing.alwaysFail
+import io.dwsoft.checkt.testing.alwaysFailWithMessage
 import io.dwsoft.checkt.testing.alwaysFailingRule
 import io.dwsoft.checkt.testing.alwaysPassingRule
 import io.kotest.assertions.throwables.shouldThrow
@@ -24,10 +24,10 @@ class ValidationScopeTests : StringSpec({
 
     "Result of failed validation contains all errors" {
         val validationScope = ValidationScope()
-        val failingRule = alwaysFail { "$value" }
+        val failingRule = alwaysFailWithMessage { "$value" }
         val validatedValues = listOf("v1", "v2")
         val expectedErrors = validatedValues.map {
-            ValidationError(it, failingRule.context, ValidationPath.unnamed, it)
+            ValidationError(it, failingRule.validationContext, ValidationPath.unnamed, it)
         }
 
         with(validationScope) {
@@ -63,15 +63,5 @@ class ValidationScopeTests : StringSpec({
 
         shouldThrow<IllegalArgumentException> { scope.enclose(name) }
             .message shouldContain "Scope named ${name.value} is already enclosed"
-    }
-
-    "Value cannot be validated by equal rules into single scope" {
-        shouldThrow<IllegalStateException> {
-            val value = Any()
-            ValidationScope().apply {
-                value.checkAgainst(alwaysFailingRule)
-                value.checkAgainst(alwaysFailingRule)
-            }
-        }.message shouldContain "Value .* violated the same check .* twice".toRegex()
     }
 })

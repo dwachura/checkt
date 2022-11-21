@@ -132,7 +132,7 @@ class ValidationPathTests : FreeSpec({
             row({ -"seg1" / "seg2"[1.idx][2.idx] }, path(seg1, seg2, idx1, idx2)),
             row({ -"seg1" / "seg2"["key1"]["key2"] }, path(seg1, seg2, key1, key2)),
             row({ -"seg1" / "seg2"[1.idx]["key1"][2.idx]["key2"] }, path(seg1, seg2, idx1, key1, idx2, key2)),
-        ) { buildPath: ValidationPathBuildingScope.() -> ValidationPath, expectedPath: ValidationPath ->
+        ) { buildPath: ValidationPathBuilder, expectedPath: ValidationPath ->
             val readableExpectedPath = expectedPath.joinToString(displayingEmptyRootAs = "$")
             "Should build '$readableExpectedPath'" {
                 val pathBuilt = validationPath(buildPath)

@@ -95,8 +95,9 @@ private data class ValidationPathImpl(
     }
 }
 
-fun validationPath(block: ValidationPathBuildingScope.() -> ValidationPath): ValidationPath =
-    ValidationPathBuildingScope().block()
+typealias ValidationPathBuilder = ValidationPathBuildingScope.() -> ValidationPath
+
+fun validationPath(block: ValidationPathBuilder): ValidationPath = ValidationPathBuildingScope().block()
 
 // TODO: kdocks?
 class ValidationPathBuildingScope {

@@ -4,9 +4,8 @@ import io.dwsoft.checkt.core.ValidationPath.Segment
 
 // TODO:
 //  * MOAR TESTS!!!
-//  * interface Validator for DTOs (idea for later ???)
-//  * restrict creation of Check.Params to Check scope (prevent creation of Param subtypes outside Check class)
 //  * support for suspension (for translation [and validation/checks ???])
+//  * restrict creation of Check.Params to Check scope (prevent creation of Param subtypes outside Check class) - possible???
 
 class ValidationScope private constructor(
     validationPathSegment: Segment,

@@ -2,6 +2,9 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
+import io.dwsoft.checkt.core.ValidationPathBuilder
+import io.dwsoft.checkt.core.ValidationPathBuildingScope
+import io.dwsoft.checkt.core.ValidationResult
 import io.dwsoft.checkt.core.ValidationResult.Failure
 import io.dwsoft.checkt.core.ValidationScope
 import io.dwsoft.checkt.core.checkKey
@@ -9,6 +12,7 @@ import io.dwsoft.checkt.core.joinToString
 import io.dwsoft.checkt.core.key
 import io.dwsoft.checkt.core.toList
 import io.dwsoft.checkt.core.unnamed
+import io.dwsoft.checkt.core.validationPath
 import io.kotest.assertions.asClue
 import io.kotest.assertions.assertSoftly
 import io.kotest.matchers.collections.shouldContainInOrder
@@ -46,8 +50,11 @@ fun ValidationPath.shouldContainSegments(expected: List<ValidationPath.Segment>)
 fun ValidationPath.shouldContainSegments(vararg expected: ValidationPath.Segment) =
     this.shouldContainSegments(expected.toList())
 
-fun ValidationScope.shouldFailBecause(vararg violations: Violation<*>) {
-    result.shouldBeInstanceOf<Failure>()
+fun ValidationScope.shouldFailBecause(vararg violations: Violation<*>) =
+    result.shouldFailBecause(*violations)
+
+fun ValidationResult.shouldFailBecause(vararg violations: Violation<*>) {
+    shouldBeInstanceOf<Failure>()
         .errors.also { errors ->
             assertSoftly {
                 violations.forEach { violation ->
@@ -59,9 +66,9 @@ fun ValidationScope.shouldFailBecause(vararg violations: Violation<*>) {
                                 && it.validatedValue == expectedValue
                     }
                     val error =
-                        "Violation of $expectedCheckType by value $expectedValue on path '$readableExpectedPath' not found"
+                        "Violation of $expectedCheckType by value '$expectedValue' on path '$readableExpectedPath' not found"
                             .asClue { maybeError.shouldNotBeNull() }
-                    "Asserting error message of $expectedCheckType violation on path '$readableExpectedPath' (value: $expectedValue)"
+                    "Asserting error message of $expectedCheckType violation on path '$readableExpectedPath' (value: '$expectedValue')"
                         .asClue { violation.errorMessageAssertions(error.errorDetails) }
                 }
             }
@@ -76,16 +83,16 @@ data class Violation<C : Check<*, *, *>>(
 )
 
 inline fun <reified C : Check<*, *, *>> Any?.violated(
-    underPath: ValidationPath = ValidationPath.unnamed,
+    noinline underPath: ValidationPathBuilder = { ValidationPath.unnamed },
     noinline withMessageThat: (String) -> Unit = {},
 ): Violation<C> =
-    Violation(this, underPath, C::class.checkKey(), withMessageThat)
+    Violation(this, validationPath(underPath), C::class.checkKey(), withMessageThat)
 
 inline fun <reified C : Check<*, *, *>> Any?.violated(
-    underPath: ValidationPath = ValidationPath.unnamed,
+    noinline underPath: ValidationPathBuilder = { ValidationPath.unnamed },
     withMessage: String,
 ): Violation<C> =
-    Violation(this, underPath, C::class.checkKey()) { it shouldBe withMessage }
+    Violation(this, validationPath(underPath), C::class.checkKey()) { it shouldBe withMessage }
 
 
 

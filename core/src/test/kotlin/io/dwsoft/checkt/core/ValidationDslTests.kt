@@ -43,7 +43,7 @@ class ValidationDslTests : StringSpec({
     }
 
     "Nested object's properties can be validated" {
-        val expectedPath = validationPath { -"" / "nested" }
+        val expectedPath: ValidationPathBuilder = { -"" / "nested" }
         val validation = validate(root) {
             complexValue!!.invoke(namedAs = "nested") {
                 simpleValue must alwaysFailWithMessage { "1" }
@@ -73,7 +73,7 @@ class ValidationDslTests : StringSpec({
         }
         val expectedViolations = root.collection.mapIndexed { idx, elem ->
             elem.violated<AlwaysFailingCheck>(
-                underPath = validationPath { -"" / "collection"[idx.idx] },
+                underPath = { -"" / "collection"[idx.idx] },
                 withMessage = "$idx"
             )
         }.toTypedArray()
@@ -91,7 +91,7 @@ class ValidationDslTests : StringSpec({
             }
         }
         val expectedViolations = root.map.map { (key, value) ->
-            val expectedPath = validationPath { -"" / "map"["$key"] }
+            val expectedPath: ValidationPathBuilder = { -"" / "map"["$key"] }
             key.violated<AlwaysFailingCheck>(withMessage = "$key", underPath = expectedPath)
             value.violated<AlwaysFailingCheck>(withMessage = value, underPath = expectedPath)
         }.toTypedArray()

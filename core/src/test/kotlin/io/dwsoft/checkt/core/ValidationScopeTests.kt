@@ -42,8 +42,8 @@ class ValidationScopeTests : StringSpec({
 
     "Result of a scope is combined of results of scopes it encloses" {
         val validationScope = ValidationScope()
-        val enclosedScope1 = validationScope.enclose(Name("enclosed1"))
-        val enclosedScope2 = validationScope.enclose(Name("enclosed2"))
+        val enclosedScope1 = validationScope.enclose(Name(!"enclosed1"))
+        val enclosedScope2 = validationScope.enclose(Name(!"enclosed2"))
         val enclosedResult1 = enclosedScope1.apply {
             Any().checkAgainst(alwaysFailingRule)
         }.result
@@ -57,7 +57,7 @@ class ValidationScopeTests : StringSpec({
     }
 
     "Nested scopes must have unique names" {
-        val name = Name("name")
+        val name = Name(!"name")
         val scope = ValidationScope()
         scope.enclose(name)
 

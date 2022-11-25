@@ -3,6 +3,26 @@ package io.dwsoft.checkt.core
 import io.dwsoft.checkt.core.ValidationPath.Segment
 import io.dwsoft.checkt.core.ValidationPathBuildingScope.LazyTailAppender
 
+/**
+ * Non-blank string representation.
+ *
+ * @constructor throws [IllegalArgumentException] when [value] is blank.
+ */
+@JvmInline
+value class NonBlankString(val value: String) {
+    init {
+        require(value.isNotBlank()) { "Value cannot be blank" }
+    }
+
+    override fun toString(): String = value
+}
+
+/**
+ * Utility extension over [String] to create [NonBlankString] in a concise manner.
+ * Alias of [NonBlankString] constructor.
+ */
+operator fun String.not(): NonBlankString = NonBlankString(this)
+
 sealed interface ValidationPath {
     val head: Segment
     val tail: ValidationPath?
@@ -14,22 +34,17 @@ sealed interface ValidationPath {
             override val value: String = ""
         }
 
-        data class Name(override val value: String) : Segment {
-            init {
-                require(value.isNotBlank()) { "Named segment cannot be blank" }
-            }
+        data class Name(val rawValue: NonBlankString) : Segment {
+            override val value: String
+                get() = rawValue.value
         }
 
-        data class Index(val rawValue: String) : Segment {
-            constructor(number: Int) : this(number.toString()) {
+        data class Index(val rawValue: NonBlankString) : Segment {
+            constructor(number: Int) : this(!"$number") {
                 require(number >= 0) { "Numeric index cannot be negative" }
             }
 
             override val value: String = "[$rawValue]"
-
-            init {
-                require(rawValue.isNotBlank()) { "Index of path segment cannot be blank" }
-            }
         }
     }
 
@@ -110,7 +125,7 @@ class ValidationPathBuildingScope {
     operator fun ValidationPath?.div(block: LazyTailAppender): ValidationPath = appendSegment(block)
 
     operator fun String.get(key: String): LazyTailAppender =
-        appendLazily(this).appendIndex(Segment.Index(key))
+        appendLazily(this).appendIndex(Segment.Index(!key))
 
     operator fun String.get(index: NumericIndex): LazyTailAppender =
         appendLazily(this).appendIndex(Segment.Index(index.idx))
@@ -119,7 +134,7 @@ class ValidationPathBuildingScope {
         this.appendIndex(Segment.Index(index.idx))
 
     operator fun LazyTailAppender.get(key: String): LazyTailAppender =
-        this.appendIndex(Segment.Index(key))
+        this.appendIndex(Segment.Index(!key))
 
     val Int.idx: NumericIndex
         get() = NumericIndex(this)
@@ -136,7 +151,7 @@ class ValidationPathBuildingScope {
     private fun String.toSegment(): Segment =
         when {
             isBlank() -> Segment.Empty
-            else -> Segment.Name(this)
+            else -> Segment.Name(!this)
         }
 
     private fun LazyTailAppender.toPath(): ValidationPath = this(null)

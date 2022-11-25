@@ -19,7 +19,6 @@ import io.kotest.property.Exhaustive
 import io.kotest.property.arbitrary.negativeInt
 import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.positiveInt
-import io.kotest.property.arbitrary.string
 import io.kotest.property.exhaustive.of
 
 class ValidationPathTests : FreeSpec({
@@ -39,7 +38,7 @@ class ValidationPathTests : FreeSpec({
         }
 
         "...to named path" {
-            val expectedSegment = Name("path")
+            val expectedSegment = Name(!"path")
             val namedPath = ValidationPath.named(expectedSegment)
             forAll(pathSegmentKinds()) {
                 when (this) {
@@ -51,7 +50,7 @@ class ValidationPathTests : FreeSpec({
         }
 
         "...to indexed path" {
-            val expectedSegments = listOf(Name("path"), Index(0))
+            val expectedSegments = listOf(Name(!"path"), Index(0))
             val indexedPath = ValidationPath.named(expectedSegments[0] as Name) + expectedSegments[1]
             forAll(pathSegmentKinds()) {
                 when (this) {
@@ -64,15 +63,15 @@ class ValidationPathTests : FreeSpec({
     }
 
     "Path is joined to string" {
-        val prefix = ValidationPath.named(Name("seg1"))
+        val prefix = ValidationPath.named(Name(!"seg1"))
 
         io.kotest.data.forAll(
             row(ValidationPath.unnamed, ""),
-            row(prefix + Name("seg2"), "seg1.seg2"),
-            row(prefix + Index("idx"), "seg1[idx]"),
+            row(prefix + Name(!"seg2"), "seg1.seg2"),
+            row(prefix + Index(!"idx"), "seg1[idx]"),
             row(prefix + Index(0), "seg1[0]"),
             row(prefix + Index(0) + Index(1), "seg1[0][1]"),
-            row(prefix + Index(0) + Name("seg2"), "seg1[0].seg2")
+            row(prefix + Index(0) + Name(!"seg2"), "seg1[0].seg2")
         ) { path, expected ->
             val joined = path.joinToString()
 
@@ -81,16 +80,16 @@ class ValidationPathTests : FreeSpec({
     }
 
     "Path is joined to string with empty root displayed separated by custom value" {
-        val path = ValidationPath.unnamed + Name("seg1")
+        val path = ValidationPath.unnamed + Name(!"seg1")
 
-        val joined = path.joinToString(displayingEmptyRootAs = "$",) { s1, s2 -> "$s1 -> $s2" }
+        val joined = path.joinToString(displayingEmptyRootAs = "$") { s1, s2 -> "$s1 -> $s2" }
 
         joined shouldBe "$ -> seg1"
     }
 
     "Last token is returned" {
-        val lastNamed = Name("last")
-        val named = ValidationPath.named(Name("seg1")) + lastNamed
+        val lastNamed = Name(!"last")
+        val named = ValidationPath.named(Name(!"seg1")) + lastNamed
 
         io.kotest.data.forAll(
             row(ValidationPath.unnamed, ""),
@@ -110,12 +109,13 @@ class ValidationPathTests : FreeSpec({
                 if (root is Empty) ValidationPath.unnamed else ValidationPath.named(root as Name),
                 ValidationPath::plus
             )
-        val seg1 = Name("seg1")
-        val seg2 = Name("seg2")
+
+        val seg1 = Name(!"seg1")
+        val seg2 = Name(!"seg2")
         val idx1 = Index(1)
         val idx2 = Index(2)
-        val key1 = Index("key1")
-        val key2 = Index("key2")
+        val key1 = Index(!"key1")
+        val key2 = Index(!"key2")
 
         forAll(
             row({ -"" }, path(Empty)),
@@ -150,7 +150,7 @@ private fun pathSegmentKinds(): Exhaustive<Segment> =
         .map {
             when (it) {
                 Empty::class -> Empty
-                Name::class -> Name("Segment")
+                Name::class -> Name(!"Segment")
                 Index::class -> Index(123)
                 else -> throw IllegalStateException("All segment kinds must be tested")
             }
@@ -158,50 +158,19 @@ private fun pathSegmentKinds(): Exhaustive<Segment> =
         .let { Exhaustive.of(*it.toTypedArray()) }
 
 class SegmentTests : FreeSpec({
-    "${Name::class.simpleName} creation" {
-        forAll(strings()) {
+    "Numeric ${Index::class.simpleName} creation" {
+        forAll(ints()) {
             when {
-                isEmpty() -> {
-                    shouldThrow<IllegalArgumentException> { Name(this) }
-                        .message shouldContain "Named segment cannot be blank"
+                this < 0 -> {
+                    shouldThrow<IllegalArgumentException> { Index(this) }
+                        .message shouldContain "Numeric index cannot be negative"
                 }
-                else -> shouldNotThrowAny { Name(this) }
-            }
-        }
-    }
 
-    "${Index::class.simpleName} creation" - {
-        "From string" {
-            forAll(strings()) {
-                when {
-                    this.isEmpty() -> {
-                        shouldThrow<IllegalArgumentException> { Index(this) }
-                            .message shouldContain "Index of path segment cannot be blank"
-                    }
-                    else -> shouldNotThrowAny { Index(this) }
-                }
-            }
-        }
-
-        "From number" {
-            forAll(ints()) {
-                when {
-                    this < 0 -> {
-                        shouldThrow<IllegalArgumentException> { Index(this) }
-                            .message shouldContain "Numeric index cannot be negative"
-                    }
-                    else -> shouldNotThrowAny { Index(this) }
-                }
+                else -> shouldNotThrowAny { Index(this) }
             }
         }
     }
 })
-
-private fun strings(): Exhaustive<String> =
-    Exhaustive.of(
-        "",
-        Arb.string(minSize = 1).next()
-    )
 
 private fun ints(): Exhaustive<Int> =
     Exhaustive.of(

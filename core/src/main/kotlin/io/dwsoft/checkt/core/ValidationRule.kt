@@ -1,8 +1,8 @@
 package io.dwsoft.checkt.core
 
-class ValidationRule<C : Check<V, P, C>, V, P : Check.Params<C>>(
+class ValidationRule<C : Check<V, P, C>, in V, P : Check.Params<C>>(
     val check: C,
-    val errorDetailsBuilder: ErrorDetailsBuilder<C, V, P>,
+    val errorDetails: LazyErrorDetails<C, out V, P>,
 )
 
 class ErrorDetailsBuilderContext<C : Check<V, P, C>, V, P : Check.Params<C>> internal constructor(
@@ -17,12 +17,12 @@ class ErrorDetailsBuilderContext<C : Check<V, P, C>, V, P : Check.Params<C>> int
         validationPath.joinToString { acc, str -> "$acc$separator$str" }
 }
 
-typealias ErrorDetailsBuilder<C, V, P> = ErrorDetailsBuilderContext<C, V, P>.() -> String
+typealias LazyErrorDetails<C, V, P> = ErrorDetailsBuilderContext<C, out V, P>.() -> String
 
 fun <C : Check<V, P, C>, V, P : Check.Params<C>> C.toValidationRule(
-    errorDetailsBuilder: ErrorDetailsBuilder<C, V, P>
+    errorDetails: LazyErrorDetails<C, V, P>
 ): ValidationRule<C, V, P>
-    = ValidationRule(this, errorDetailsBuilder)
+    = ValidationRule(this, errorDetails)
 
 data class ValidationContext<C : Check<*, P, C>, P : Check.Params<C>>(
     val key: Check.Key<C>,

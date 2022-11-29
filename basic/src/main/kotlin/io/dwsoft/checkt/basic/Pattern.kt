@@ -1,7 +1,7 @@
 package io.dwsoft.checkt.basic
 
 import io.dwsoft.checkt.core.Check
-import io.dwsoft.checkt.core.ErrorDetailsBuilder
+import io.dwsoft.checkt.core.LazyErrorDetails
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.toValidationRule
 
@@ -18,7 +18,7 @@ class Pattern(private val regex: Regex) :
 
 fun matchRegex(
     regex: Regex,
-    errorDetailsBuilder: ErrorDetailsBuilder<Pattern, CharSequence, Pattern.Params> =
+    errorDetails: LazyErrorDetails<Pattern, CharSequence, Pattern.Params> =
         { "${validationPath()} must match regex '${validationParams.regex}'" },
 ): ValidationRule<Pattern, CharSequence, Pattern.Params> =
-    Pattern(regex).toValidationRule(errorDetailsBuilder)
+    Pattern(regex).toValidationRule(errorDetails)

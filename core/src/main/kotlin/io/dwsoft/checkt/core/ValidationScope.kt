@@ -3,8 +3,10 @@ package io.dwsoft.checkt.core
 import io.dwsoft.checkt.core.ValidationPath.Segment
 
 // TODO:
-//  * MOAR TESTS!!!
-//  * support for suspension (for translation [and validation/checks ???])
+//  * kdocs over validation scope + readme
+//  * support for suspension (for translation [and validation/checks ???]) - available after context receivers removal
+//  * split ValidationScope to [executed/terminated] scope (immutable, without methods that can modify result)
+//    and not consumed one (mutable, current implementation)
 //  * restrict creation of Check.Params to Check scope (prevent creation of Param subtypes outside Check class) - possible???
 
 class ValidationScope private constructor(
@@ -70,22 +72,19 @@ class ValidationScope private constructor(
             )
         } ?: ValidationScope(segment, this).also { enclosedScopes += it }
 
-    internal fun <C : Check<V, P, C>, V, P : Check.Params<C>> V.checkAgainst(
+    internal fun <C : Check<V, P, C>, V, P : Check.Params<C>> checkValueAgainstRule(
+        value: V,
         rule: ValidationRule<C, V, P>,
     ): ValidationError<C, V, P>? {
-        val value = this
         val check = rule.check
-        val errorDetailsBuilder = rule.errorDetailsBuilder
         return check(value)
             .takeIf { passes -> !passes }
             ?.let {
                 val errorDetailsBuilderContext =
                     ErrorDetailsBuilderContext(value, validationPath, check)
-                val errorDetails = errorDetailsBuilder(errorDetailsBuilderContext)
+                val errorDetails = rule.errorDetails(errorDetailsBuilderContext)
                 ValidationError(value, rule.validationContext, validationPath, errorDetails)
             }
             ?.also { errors += it }
     }
 }
-
-fun ValidationScope.throwIfFailure() = result.throwIfFailure()

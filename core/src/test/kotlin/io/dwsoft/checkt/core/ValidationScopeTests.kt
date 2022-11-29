@@ -16,7 +16,7 @@ class ValidationScopeTests : StringSpec({
         val validationScope = ValidationScope()
 
         with(validationScope) {
-            Any().checkAgainst(alwaysPassingRule)
+            checkValueAgainstRule(Any(), alwaysPassingRule)
         }
 
         validationScope.result shouldBe ValidationResult.Success
@@ -32,7 +32,7 @@ class ValidationScopeTests : StringSpec({
 
         with(validationScope) {
             validatedValues.forEach {
-                it.checkAgainst(failingRule)
+                checkValueAgainstRule(it, failingRule)
             }
         }
 
@@ -45,10 +45,10 @@ class ValidationScopeTests : StringSpec({
         val enclosedScope1 = validationScope.enclose(Name(!"enclosed1"))
         val enclosedScope2 = validationScope.enclose(Name(!"enclosed2"))
         val enclosedResult1 = enclosedScope1.apply {
-            Any().checkAgainst(alwaysFailingRule)
+            checkValueAgainstRule(Any(), alwaysFailingRule)
         }.result
         val enclosedResult2 = enclosedScope2.apply {
-            Any().checkAgainst(alwaysFailingRule)
+            checkValueAgainstRule(Any(), alwaysFailingRule)
         }.result
 
         val enclosingScopeResult = validationScope.result

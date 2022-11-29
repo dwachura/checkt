@@ -1,7 +1,7 @@
 package io.dwsoft.checkt.basic
 
 import io.dwsoft.checkt.core.Check
-import io.dwsoft.checkt.core.ErrorDetailsBuilder
+import io.dwsoft.checkt.core.LazyErrorDetails
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.toValidationRule
 
@@ -18,10 +18,10 @@ class LessThan<V>(private val max: V) :
 
 fun <V : Comparable<V>> beLessThan(
     max: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<LessThan<V>, V, LessThan.Params<V>> =
+    errorDetails: LazyErrorDetails<LessThan<V>, V, LessThan.Params<V>> =
         { "${validationPath()} must be less than ${validationParams.max}" },
 ): ValidationRule<LessThan<V>, V, LessThan.Params<V>> =
-    LessThan(max).toValidationRule(errorDetailsBuilder)
+    LessThan(max).toValidationRule(errorDetails)
 
 class LessThanOrEqual<V>(private val max: V) :
     Check<Comparable<V>, LessThanOrEqual.Params<V>, LessThanOrEqual<V>>
@@ -36,10 +36,10 @@ class LessThanOrEqual<V>(private val max: V) :
 
 fun <V : Comparable<V>> notBeGreaterThan(
     max: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<LessThanOrEqual<V>, V, LessThanOrEqual.Params<V>> =
+    errorDetails: LazyErrorDetails<LessThanOrEqual<V>, V, LessThanOrEqual.Params<V>> =
         { "${validationPath()} must not be greater than ${validationParams.max}" },
 ): ValidationRule<LessThanOrEqual<V>, V, LessThanOrEqual.Params<V>> =
-    LessThanOrEqual(max).toValidationRule(errorDetailsBuilder)
+    LessThanOrEqual(max).toValidationRule(errorDetails)
 
 class GreaterThan<V>(private val min: V) :
     Check<Comparable<V>, GreaterThan.Params<V>, GreaterThan<V>>
@@ -54,10 +54,10 @@ class GreaterThan<V>(private val min: V) :
 
 fun <V : Comparable<V>> beGreaterThan(
     min: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<GreaterThan<V>, V, GreaterThan.Params<V>> =
+    errorDetails: LazyErrorDetails<GreaterThan<V>, V, GreaterThan.Params<V>> =
         { "${validationPath()} must be greater than ${validationParams.min}" },
 ): ValidationRule<GreaterThan<V>, V, GreaterThan.Params<V>> =
-    GreaterThan(min).toValidationRule(errorDetailsBuilder)
+    GreaterThan(min).toValidationRule(errorDetails)
 
 class GreaterThanOrEqual<V>(private val min: V) :
     Check<Comparable<V>, GreaterThanOrEqual.Params<V>, GreaterThanOrEqual<V>>
@@ -72,7 +72,7 @@ class GreaterThanOrEqual<V>(private val min: V) :
 
 fun <V : Comparable<V>> notBeLessThan(
     min: V,
-    errorDetailsBuilder: ErrorDetailsBuilder<GreaterThanOrEqual<V>, V, GreaterThanOrEqual.Params<V>> =
+    errorDetails: LazyErrorDetails<GreaterThanOrEqual<V>, V, GreaterThanOrEqual.Params<V>> =
         { "${validationPath()} must not be less than ${validationParams.min}" },
 ): ValidationRule<GreaterThanOrEqual<V>, V, GreaterThanOrEqual.Params<V>> =
-    GreaterThanOrEqual(min).toValidationRule(errorDetailsBuilder)
+    GreaterThanOrEqual(min).toValidationRule(errorDetails)

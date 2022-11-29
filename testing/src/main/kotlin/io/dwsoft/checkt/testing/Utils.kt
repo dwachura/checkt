@@ -50,9 +50,6 @@ fun ValidationPath.shouldContainSegments(expected: List<ValidationPath.Segment>)
 fun ValidationPath.shouldContainSegments(vararg expected: ValidationPath.Segment) =
     this.shouldContainSegments(expected.toList())
 
-fun ValidationScope.shouldFailBecause(vararg violations: Violation<*>) =
-    result.shouldFailBecause(*violations)
-
 fun ValidationResult.shouldFailBecause(vararg violations: Violation<*>) {
     shouldBeInstanceOf<Failure>()
         .errors.also { errors ->

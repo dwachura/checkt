@@ -11,12 +11,12 @@ interface Validated<V> {
 fun <V : Validated<V>> V.validate(): ValidationResult = validator.validate(this)
 
 fun <V : Validated<V>> validationSpec(
-    validation: context(ValidationScope, ValidationScopeDsl) V.() -> Unit
+    validation: ValidationSpec<V>.() -> Unit
 ): Validated<V> =
     object : Validated<V> {
         override val validator: Validator<V> =
             object : Validator<V> {
                 override fun validate(value: V): ValidationResult =
-                    validate(value, namedAs = null, validation = validation).result
+                    validate(value, namedAs = null, validation = validation)
             }
     }

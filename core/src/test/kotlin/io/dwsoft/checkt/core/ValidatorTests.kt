@@ -16,11 +16,11 @@ class ValidatorTests : FreeSpec({
             val middleName: String? = null,
             val phoneNumber: String? = null,
         ) : Validated<CreateUserRequest> by validationSpec({
-            ::firstName { this must alwaysFailWithMessage { "1" } }
-            ::lastName { this must alwaysFailWithMessage { "2" } }
-            ::age { this must alwaysFailWithMessage { "3" } }
-            ::middleName { this must alwaysFailWithMessage { "4" } }
-            ::phoneNumber { this must alwaysFailWithMessage { "5" } }
+            subject::firstName { +alwaysFailWithMessage { "1" } }
+            subject::lastName { +alwaysFailWithMessage { "2" } }
+            subject::age { +alwaysFailWithMessage { "3" } }
+            subject::middleName { +alwaysFailWithMessage { "4" } }
+            subject::phoneNumber { +alwaysFailWithMessage { "5" } }
         })
 
         val request = CreateUserRequest()

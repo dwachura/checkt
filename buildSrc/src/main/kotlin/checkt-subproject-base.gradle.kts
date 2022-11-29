@@ -16,7 +16,7 @@ repositories {
 tasks.withType<KotlinCompile> {
     kotlinOptions {
         jvmTarget = "1.8"
-        freeCompilerArgs += "-Xcontext-receivers"
+//        freeCompilerArgs += "-Xcontext-receivers"
     }
 }
 

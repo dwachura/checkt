@@ -1,14 +1,14 @@
 package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
-import io.dwsoft.checkt.core.ErrorDetailsBuilder
+import io.dwsoft.checkt.core.LazyErrorDetails
 import io.dwsoft.checkt.core.toValidationRule
 
 val alwaysFailingRule = alwaysFailWithMessage { "$value - ${validationPath()}" }
 
 fun alwaysFailWithMessage(
-    errorDetailsBuilder: ErrorDetailsBuilder<AlwaysFailingCheck, Any?, Check.Params.None<AlwaysFailingCheck>>
-) = AlwaysFailingCheck.toValidationRule(errorDetailsBuilder)
+    errorDetails: LazyErrorDetails<AlwaysFailingCheck, Any?, Check.Params.None<AlwaysFailingCheck>>
+) = AlwaysFailingCheck.toValidationRule(errorDetails)
 
 object AlwaysFailingCheck : Check.WithoutParams<Any?, AlwaysFailingCheck> by Check.WithoutParams.delegate(
     implementation = { false }

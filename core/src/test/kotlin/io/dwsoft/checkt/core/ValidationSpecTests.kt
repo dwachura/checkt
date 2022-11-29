@@ -12,7 +12,9 @@ import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.string
 
-class ValidationDslTests : StringSpec({
+// TODO: get rid of subject references from DSL
+
+class ValidationSpecTests : StringSpec({
     val root = ValidatedObject(
         simpleValue = Arb.string().next(),
         collection = Arb.list(Arb.double(), 3..3).next(),
@@ -22,7 +24,7 @@ class ValidationDslTests : StringSpec({
     "Validation in root scope" {
         val validation = validate(root) {
             +alwaysFailWithMessage { "1" }
-            simpleValue must alwaysFailWithMessage { "2" }
+            subject.simpleValue requireTo alwaysFailWithMessage { "2" }
         }
 
         validation.shouldFailBecause(
@@ -33,8 +35,8 @@ class ValidationDslTests : StringSpec({
 
     "Validation in nested scope" {
         val validation = validate(root) {
-            simpleValue.namedAs(!"simpleVal") requireTo { +alwaysFailWithMessage { "1" } }
-            ::collection requireTo { +alwaysFailWithMessage { "2" } }
+            subject.simpleValue.namedAs(!"simpleVal") requireTo { +alwaysFailWithMessage { "1" } }
+            subject::collection requireTo { +alwaysFailWithMessage { "2" } }
         }
 
         validation.shouldFailBecause(
@@ -51,9 +53,9 @@ class ValidationDslTests : StringSpec({
 
     "Elements of iterable properties can be validated" {
         val validation = validate(root) {
-            ::collection {
+            subject::collection {
                 eachElement { idx ->
-                    this must alwaysFailWithMessage { "$idx" }
+                    subject requireTo alwaysFailWithMessage { "$idx" }
                 }
             }
         }
@@ -69,11 +71,11 @@ class ValidationDslTests : StringSpec({
 
     "Entries of maps can be validated" {
         val validation = validate(root) {
-            ::map {
+            subject::map {
                 eachEntry(
                     indexedUsingKeysTransformedBy = { !"$it" },
-                    keyValidation = { +alwaysFailWithMessage { "${this@eachEntry}:$it" } },
-                    valueValidation = { +alwaysFailWithMessage { "$it:${this@eachEntry}" } },
+                    keyValidation = { +alwaysFailWithMessage { "$subject:$it" } },
+                    valueValidation = { +alwaysFailWithMessage { "$it:$subject" } },
                 )
             }
         }

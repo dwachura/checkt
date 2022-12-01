@@ -3,10 +3,7 @@ package io.dwsoft.checkt.basic
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Params.None
 import io.dwsoft.checkt.core.LazyErrorDetails
-import io.dwsoft.checkt.core.ValidationError
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.ValidationScope
-import io.dwsoft.checkt.core.ValidationSpec
 import io.dwsoft.checkt.core.toValidationRule
 
 class NonNull<V : Any?> : Check.WithoutParams<V, NonNull<V>> by Check.WithoutParams.delegate(

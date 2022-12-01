@@ -4,13 +4,15 @@ import io.dwsoft.checkt.core.ValidationPath.Segment
 
 // TODO:
 //  * kdocs over validation scope + readme
+//  * conditional rules
+//  * fail-fast mode
 //  * support for suspension (for translation [and validation/checks ???]) - available after context receivers removal
 //  * split ValidationScope to [executed/terminated] scope (immutable, without methods that can modify result)
 //    and not consumed one (mutable, current implementation)
 //  * restrict creation of Check.Params to Check scope (prevent creation of Param subtypes outside Check class) - possible???
 
 class ValidationScope private constructor(
-    validationPathSegment: Segment,
+    headSegment: Segment,
     enclosingScope: ValidationScope? = null,
 ) {
     /**
@@ -21,14 +23,14 @@ class ValidationScope private constructor(
     /**
      * Public constructor for named root scopes.
      */
-    constructor(name: Segment.Name) : this(name, null)
+    constructor(name: NonBlankString) : this(Segment.Name(name), null)
 
     val validationPath: ValidationPath =
         when (enclosingScope) {
             null -> {
-                when (validationPathSegment) {
+                when (headSegment) {
                     Segment.Empty -> ValidationPath.unnamed
-                    is Segment.Name -> ValidationPath.named(validationPathSegment)
+                    is Segment.Name -> ValidationPath.named(headSegment)
                     is Segment.Index ->
                         // in normal circumstances this cannot happen, as a correct
                         // root segment usage is enforced by public constructors
@@ -37,7 +39,7 @@ class ValidationScope private constructor(
                         )
                 }
             }
-            else -> enclosingScope.validationPath + validationPathSegment
+            else -> enclosingScope.validationPath + headSegment
         }
 
     val result: ValidationResult
@@ -77,14 +79,16 @@ class ValidationScope private constructor(
         rule: ValidationRule<C, V, P>,
     ): ValidationError<C, V, P>? {
         val check = rule.check
-        return check(value)
-            .takeIf { passes -> !passes }
-            ?.let {
+        return when (check(value)) {
+            false -> {
                 val errorDetailsBuilderContext =
                     ErrorDetailsBuilderContext(value, validationPath, check)
-                val errorDetails = rule.errorDetails(errorDetailsBuilderContext)
+                val errorDetails =
+                    rule.errorDetails(errorDetailsBuilderContext)
                 ValidationError(value, rule.validationContext, validationPath, errorDetails)
+                    .also { errors += it }
             }
-            ?.also { errors += it }
+            true -> null
+        }
     }
 }

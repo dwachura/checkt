@@ -2,8 +2,8 @@ package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Segment.Name
 import io.dwsoft.checkt.testing.alwaysFailWithMessage
-import io.dwsoft.checkt.testing.alwaysFailingRule
-import io.dwsoft.checkt.testing.alwaysPassingRule
+import io.dwsoft.checkt.testing.alwaysFail
+import io.dwsoft.checkt.testing.alwaysPass
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
@@ -16,7 +16,7 @@ class ValidationScopeTests : StringSpec({
         val validationScope = ValidationScope()
 
         with(validationScope) {
-            checkValueAgainstRule(Any(), alwaysPassingRule)
+            checkValueAgainstRule(Any(), alwaysPass)
         }
 
         validationScope.result shouldBe ValidationResult.Success
@@ -45,10 +45,10 @@ class ValidationScopeTests : StringSpec({
         val enclosedScope1 = validationScope.enclose(Name(!"enclosed1"))
         val enclosedScope2 = validationScope.enclose(Name(!"enclosed2"))
         val enclosedResult1 = enclosedScope1.apply {
-            checkValueAgainstRule(Any(), alwaysFailingRule)
+            checkValueAgainstRule(Any(), alwaysFail)
         }.result
         val enclosedResult2 = enclosedScope2.apply {
-            checkValueAgainstRule(Any(), alwaysFailingRule)
+            checkValueAgainstRule(Any(), alwaysFail)
         }.result
 
         val enclosingScopeResult = validationScope.result

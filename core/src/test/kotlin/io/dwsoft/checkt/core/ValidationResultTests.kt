@@ -10,7 +10,7 @@ import io.kotest.property.exhaustive.of
 import io.mockk.mockk
 
 class ValidationResultTests : StringSpec({
-    "Results can be merged" {
+    "Results are merged" {
         forAll(resultMergingCases()) {
             when {
                 left is Success && right is Success ->

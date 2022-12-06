@@ -9,11 +9,15 @@ import kotlin.reflect.KProperty0
  *  - tests of conditional rule processing
  */
 
+/**
+ * Validation specification represents a function validating value [T] under named scope.
+ * Alias introduced for better readability and easier extension writing.
+ */
 typealias ValidationSpec<T> = suspend (T, NonBlankString?) -> Result<ValidationResult>
 
-suspend fun <T> ValidationSpec<T>.validate(value: T, namedAs: NonBlankString? = null) =
-    invoke(value, namedAs)
-
+/**
+ * Entry point of defining [validation logic][ValidationSpec] for values of type [T].
+ */
 fun <T> validationSpec(validation: ValidationBlock<T>): ValidationSpec<T> =
     { value, namedAs ->
         runCatching {
@@ -23,18 +27,37 @@ fun <T> validationSpec(validation: ValidationBlock<T>): ValidationSpec<T> =
         }
     }
 
+/**
+ * Validates given [value] in an optionally named scope against [defined rules][this].
+ *
+ * Alias of [ValidationSpec.invoke].
+ */
+suspend fun <T> ValidationSpec<T>.validate(value: T, namedAs: NonBlankString? = null) =
+    invoke(value, namedAs)
+
+/**
+ * "Overloaded" version of [ValidationSpec.validate].
+ */
 suspend fun <T> T.validate(
     namedAs: NonBlankString? = null,
     with: ValidationSpec<T>,
 ): Result<ValidationResult> = with.validate(this, namedAs)
 
+suspend fun <T> NamedValue<T>.validate(with: ValidationSpec<T>) = with(value, name)
+
+/**
+ * Validates given value against [spec][ValidationSpec] created out of passed [block]
+ * [ValidationBlock].
+ */
 suspend fun <T> T.validate(
     namedAs: NonBlankString? = null,
     validation: ValidationBlock<T>,
 ): Result<ValidationResult> = validate(namedAs, validationSpec(validation))
 
-suspend fun <T> NamedValue<T>.validate(with: ValidationSpec<T>) = with(value, name)
-
+// Todo: add dsl maker???
+/** Todo
+ * [Validation] runner for a given [value][subject].
+ */
 class Validation<V>(
     val subject: V,
     private val scope: ValidationScope

@@ -13,13 +13,6 @@ repositories {
     mavenCentral()
 }
 
-tasks.withType<KotlinCompile> {
-    kotlinOptions {
-        jvmTarget = "11"
-//        freeCompilerArgs += "-Xcontext-receivers"
-    }
-}
-
 dependencies {
     implementation(Dependencies.`kotlin-logging`)
     testRuntimeOnly(Dependencies.`logback-classic`)

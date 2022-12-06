@@ -6,7 +6,7 @@ import io.dwsoft.checkt.core.LazyErrorDetails
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.toValidationRule
 
-class NonNull<V : Any?> : Check.WithoutParams<V, NonNull<V>> by Check.WithoutParams.delegate(
+class NonNull<V : Any?> : Check.Parameterless<V, NonNull<V>> by Check.Parameterless.delegate(
     implementation = { value -> value != null }
 )
 
@@ -24,7 +24,7 @@ fun <V> notBeNull(
 //    this ?: notNullContext(ValidationSpec(this@V!!, this@ValidationScope), this@V!!)
 //}
 
-class IsNull<V : Any?> : Check.WithoutParams<V, IsNull<V>> by Check.WithoutParams.delegate(
+class IsNull<V : Any?> : Check.Parameterless<V, IsNull<V>> by Check.Parameterless.delegate(
     implementation = { value -> value == null }
 )
 

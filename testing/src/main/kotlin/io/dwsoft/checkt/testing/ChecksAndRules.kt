@@ -27,12 +27,12 @@ fun alwaysFailWithMessage(
     errorDetails: LazyErrorDetails<AlwaysFailingCheck, Any?, Check.Params.None<AlwaysFailingCheck>>
 ) = AlwaysFailingCheck.toValidationRule(errorDetails)
 
-object AlwaysFailingCheck : Check.WithoutParams<Any?, AlwaysFailingCheck> by Check.WithoutParams.delegate(
+object AlwaysFailingCheck : Check.Parameterless<Any?, AlwaysFailingCheck> by Check.Parameterless.delegate(
     implementation = { false }
 )
 
 val alwaysPass = AlwaysPassingCheck.toValidationRule { "" }
 
-object AlwaysPassingCheck : Check.WithoutParams<Any, AlwaysPassingCheck> by Check.WithoutParams.delegate(
+object AlwaysPassingCheck : Check.Parameterless<Any, AlwaysPassingCheck> by Check.Parameterless.delegate(
     implementation = { true }
 )

@@ -32,12 +32,12 @@ interface Check<in V, P : Check.Params<SELF>, SELF : Check<V, P, SELF>> {
         }
     }
 
-    interface WithoutParams<V, SELF : Check<V, None<SELF>, SELF>> : Check<V, None<SELF>, SELF> {
+    interface Parameterless<V, SELF : Check<V, None<SELF>, SELF>> : Check<V, None<SELF>, SELF> {
         companion object {
-            inline fun <C : Check<V, None<C>, C>, V> delegate(
-                crossinline implementation: (value: V) -> Boolean
-            ): WithoutParams<V, C> =
-                object : WithoutParams<V, C> {
+            fun <C : Check<V, None<C>, C>, V> delegate(
+                implementation: (value: V) -> Boolean
+            ): Parameterless<V, C> =
+                object : Parameterless<V, C> {
                     override val params: None<C> = None()
 
                     override fun invoke(value: V): Boolean = implementation(value)

@@ -2,23 +2,18 @@ package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.testing.AlwaysFailingCheck
 import io.dwsoft.checkt.testing.alwaysFailWithMessage
-import io.dwsoft.checkt.testing.alwaysPass
 import io.dwsoft.checkt.testing.shouldFailBecause
 import io.dwsoft.checkt.testing.shouldRepresentCompletedValidation
 import io.dwsoft.checkt.testing.testValidation
 import io.dwsoft.checkt.testing.violated
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.result.shouldBeFailure
-import io.kotest.matchers.throwable.shouldHaveMessage
 import io.kotest.property.Arb
 import io.kotest.property.arbitrary.double
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.string
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
 
 class ValidationTests : FreeSpec({
     data class Dto(
@@ -123,12 +118,13 @@ class ValidationTests : FreeSpec({
         val expectedException = RuntimeException("error")
 
         "Exceptions from validation rules are caught" {
-            class ThrowingCheck : Check.WithoutParams<Any, ThrowingCheck> by Check.WithoutParams.delegate({
-                throw expectedException
-            })
+            class ThrowingCheck(val ex: Throwable) :
+                Check.Parameterless<Any, ThrowingCheck> by Check.Parameterless.delegate({ throw ex })
 
             val spec = validationSpec<Dto> {
-                subject::simpleValue require ThrowingCheck().toValidationRule { "" }
+                subject::simpleValue require {
+                    +ThrowingCheck(expectedException).toValidationRule { "" }
+                }
             }
 
             testValidation(Dto(), spec) {

@@ -26,8 +26,11 @@ class ValidationScopeTests : StringSpec({
         val validationScope = ValidationScope()
         val failingRule = alwaysFailWithMessage { "$value" }
         val validatedValues = listOf("v1", "v2")
+        val errorContext = ValidationError.Context(
+            failingRule.check, ValidationPath.unnamed
+        )
         val expectedErrors = validatedValues.map {
-            ValidationError(it, failingRule.validationContext, ValidationPath.unnamed, it)
+            ValidationError(it, errorContext, it)
         }
 
         with(validationScope) {

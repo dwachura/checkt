@@ -7,160 +7,121 @@ import kotlin.reflect.KProperty0
  *  - correct docks after context removal and receivers refactor
  *  - tests and refactoring collection/map validation in regards of Result
  *  - tests of conditional rule processing
+ *  - make Validation implement ValidationSpec ???
  */
 
-/**
- * Validation specification represents a function validating value [T] under named scope.
- * Alias introduced for better readability and easier extension writing.
- */
-typealias ValidationSpec<T> = suspend (T, NonBlankString?) -> Result<ValidationResult>
-
-/**
- * Entry point of defining [validation logic][ValidationSpec] for values of type [T].
- */
-fun <T> validationSpec(validation: ValidationBlock<T>): ValidationSpec<T> =
-    { value, namedAs ->
-        runCatching {
-            val scope = namedAs?.let { ValidationScope(it) } ?: ValidationScope()
-            Validation(value, scope).apply { validation().value.getOrThrow() }
-            scope.result
-        }
-    }
-
-/**
- * Validates given [value] in an optionally named scope against [defined rules][this].
- *
- * Alias of [ValidationSpec.invoke].
- */
-suspend fun <T> ValidationSpec<T>.validate(value: T, namedAs: NonBlankString? = null) =
-    invoke(value, namedAs)
-
-/**
- * "Overloaded" version of [ValidationSpec.validate].
- */
-suspend fun <T> T.validate(
-    namedAs: NonBlankString? = null,
-    with: ValidationSpec<T>,
-): Result<ValidationResult> = with.validate(this, namedAs)
-
-suspend fun <T> NamedValue<T>.validate(with: ValidationSpec<T>) = with(value, name)
-
-/**
- * Validates given value against [spec][ValidationSpec] created out of passed [block]
- * [ValidationBlock].
- */
-suspend fun <T> T.validate(
-    namedAs: NonBlankString? = null,
-    validation: ValidationBlock<T>,
-): Result<ValidationResult> = validate(namedAs, validationSpec(validation))
+///**
+// * Validates given value against [spec][ValidationSpec] created out of passed
+// * [block][ValidationBlock].
+// */
+//suspend fun <T> T.validate(
+//    namedAs: NonBlankString?,
+//    validationBlock: ValidationBlock<T>
+//): Result<ValidationResult> =
+//    runCatching {
+//        val scope = namedAs?.let { ValidationScope(it) } ?: ValidationScope()
+//        Validation(this, scope).apply { validationBlock().getOrThrow() }
+//        scope.result
+//    }
 
 // Todo: add dsl maker???
-/** Todo
- * [Validation] runner for a given [value][subject].
+/**
+ * Validation logic builder/DSL.
+ *
+ * It creates validation context composed of validated value, i.e. [subject] together
+ * with a [named scope][ValidationScope] within which defined rules are executed.
+ *
+ * Each validation operation defined by the [validation DSL][Validation] is run with
+ * [exception catching in place][runCatching] and should respond with a
+ * [status][ValidationOperationStatus] that represent either exceptional completion
+ * or successful one resulting with an actual [validation result][ValidationResult].
  */
-class Validation<V>(
-    val subject: V,
-    private val scope: ValidationScope
-) {
+class Validation<V>(val subject: V, private val scope: ValidationScope) {
     /**
-     * Opens and returns a new, named [scope][ValidationScope] enclosed into contextual
-     * scope, used to validate [value, taken from the receiver of this function][NamedValue.value].
-     * The new scope's name is [taken from the receiver as well][NamedValue.name].
-     *
-     * [Validation block][validation] (containing validation logic) runs in a context
-     * of the new scope and [validation DSL][Validation].
+     * Validate given [value][Named] against [validation logic][validationBlock] into
+     * a new, [named][Named.name] scope.
      */
-    suspend infix fun <T> NamedValue<T>.require(validation: ValidationBlock<T>):
-            ValidationBlockResult<ValidationResult> =
-        runEnclosed(value, ValidationPath.Segment.Name(name), validation)
-
-    internal suspend fun <T> runEnclosed(
-        value: T,
-        namedAs: ValidationPath.Segment,
-        validation: ValidationBlock<T>,
-    ): ValidationBlockResult<ValidationResult> =
-        runCatching {
-            scope.enclose(namedAs).also { enclosedScope ->
-                validation(Validation(value, enclosedScope)).value.getOrThrow()
-            }.result
-        }.asValidationBlockResult()
+    suspend infix fun <T> Named<T>.require(validationBlock: ValidationBlock<T>) =
+        runEnclosed(value, ValidationPath.Segment.Name(name), validationBlock)
 
     /**
-     * "Overloaded" version of [NamedValue.require] function that takes property as
+     * "Overloaded" version of [Named.require] function that takes property as
      * a receiver. A new scope's name and value to validate is taken from the property
      * specified ([KProperty0.name] and [KProperty0.get] respectively).
      */
-    suspend infix fun <T> KProperty0<T>.require(
-        validation: ValidationBlock<T>
-    ): ValidationBlockResult<ValidationResult> =
-        get().namedAs(!name).require(validation)
+    suspend infix fun <T> KProperty0<T>.require(validationBlock: ValidationBlock<T>) =
+        toNamed().require(validationBlock)
 
     /**
-     * Function used to apply given [validation rule][toBeValidAgainst] to the validated [value][this].
-     *
-     * Registers and returns [error][ValidationError] if the value doesn't conform to the given rule
-     * or returns null otherwise.
+     * Function used to apply given [validation rule][toBeValidAgainst] to the
+     * given [value][this]. Any errors are registered under a scope created by the
+     * current [context][Validation].
      */
     infix fun <C : Check<T, P, C>, T : Any?, P : Check.Params<C>> T.require(
         toBeValidAgainst: ValidationRule<C, T, P>,
-    ): ValidationBlockResult<ValidationError<C, T, P>?> =
-        checkValue(this, toBeValidAgainst)
+    ) = checkValueAgainstRule(this, toBeValidAgainst)
 
     /**
-     * Shortcut to apply [V.requireTo][Any.require] on a [currently validated value]
-     * [subject].
+     * Tests the [currently validated value][subject] against given [validation rule][this].
      */
     operator fun <C : Check<V, P, C>, P : Check.Params<C>> ValidationRule<C, V, P>.unaryPlus() =
         subject.require(toBeValidAgainst = this)
 
-    private fun <C : Check<T, P, C>, T : Any?, P : Check.Params<C>> checkValue(
+    internal suspend fun <T> runEnclosed(
         value: T,
-        beValidAgainst: ValidationRule<C, T, P>,
-    ): ValidationBlockResult<ValidationError<C, T, P>?> =
+        namedAs: ValidationPath.Segment,
+        validationBlock: ValidationBlock<T>,
+    ): ValidationOperationStatus =
         runCatching {
-            scope.checkValueAgainstRule(value, beValidAgainst)
-        }.asValidationBlockResult()
+            scope.enclose(namedAs).also { enclosedScope ->
+                with (Validation(value, enclosedScope)) {
+                    validationBlock().getOrThrow()
+                }
+            }.result
+        }
+
+    private fun <C : Check<T, P, C>, T : Any?, P : Check.Params<C>> checkValueAgainstRule(
+        value: T,
+        rule: ValidationRule<C, T, P>,
+    ): ValidationOperationStatus =
+        runCatching {
+            scope.checkValueAgainstRule(value, rule).toValidationResult()
+        }
 }
 
 /**
- * Returns a list of [indexed][ValidationPath.Segment.Index] [scopes][ValidationScope]
- * enclosed into contextual scope opened for each element contained into iterable that
- * is a receiver of this function.
- *
- * New scopes are indexed according to their position in the iterable.
- *
- * [Validation block][validation] (containing validation logic) runs in a context of
- * the new scope and [validation DSL][Validation]. Index of validated element
- * is passed to the block via parameter.
+ * Validates each element of given iterable (being a [subject][Validation.subject]
+ * of a current context) against provided [validation rules][validationBlock].
+ * Each element is validated into new scope indexed according to its position in the
+ * iterable. Index of currently validated element is passed to the validation block
+ * as a lambda parameter.
  */
 suspend fun <T : Iterable<EL>, EL> Validation<T>.eachElement(
-    validation: ValidationBlock1<EL, Int>,
-): ValidationBlockResult<ValidationResult> =
+    validationBlock: ValidationBlock1<EL, Int>,
+): ValidationOperationStatus =
     subject.mapIndexed { idx, value ->
         runEnclosed(value, ValidationPath.Segment.Index(idx)) {
-            validation(idx)
+            validationBlock(idx)
         }
     }.fold()
 
 /**
- * Returns a map of [indexed][ValidationPath.Segment.Index] [scopes][ValidationScope]
- * enclosed into contextual scope opened for each entry of the map that is passed
- * a receiver of this function.
+ * Validates each entry of given map (being a [subject][Validation.subject] of a current
+ * context) against provided validation rules.
  *
- * New scopes are indexed with entry key transformed by the given [transforming function]
- * [displayingKeysAs].
+ * Rules can be defined for separately entry's key and value (the former is optional).
+ * In both cases "opposite" entry side (value in case of a key, and vice-versa) is passed
+ * to the validation lambda as a parameter.
  *
- * Validation blocks (containing validation logic) [for entry key][keyValidation] and
- * [value][valueValidation] run in a context of the new scope and
- * [validation DSL][Validation]. Validated values are passed to the lambdas as
- * a receivers. Also, both blocks have access to a value from the "opposite" side (value
- * for key, key for value) accessible via lambda's parameter.
+ * Each entry is validated into new scope indexed with entry key transformed by the
+ * given [transforming function][displayingKeysAs]. Entry's key and value also have their
+ * own scopes created named "key" and "value" respectively.
  */
 suspend fun <T : Map<K, V>, K, V> Validation<T>.eachEntry(
-    displayingKeysAs: (key: K) -> NonBlankString = ::defaultKeyTransformer,
+    displayingKeysAs: (key: K) -> NonBlankString = { key -> !(key?.toString() ?: "null") },
     keyValidation: ValidationBlock1<K, V>? = null,
     valueValidation: ValidationBlock1<V, K>,
-): ValidationBlockResult<ValidationResult> =
+): ValidationOperationStatus =
     subject.map { entry ->
         val key = entry.key
         val indexSegment = ValidationPath.Segment.Index(displayingKeysAs(key))
@@ -171,36 +132,32 @@ suspend fun <T : Map<K, V>, K, V> Validation<T>.eachEntry(
                     key,
                     ValidationPath.Segment.Name(!"key")
                 ) keyScope@{ this@keyScope.keyValidation(value) }
-            }?.value?.getOrThrow()
+            }?.getOrThrow()
             val valueValidationResult = runEnclosed(
                 value,
                 ValidationPath.Segment.Name(!"value")
             ) valueScope@{ this@valueScope.valueValidation(key) }
-                .value.getOrThrow()
+                .getOrThrow()
             (keyValidationResult?.let { it + valueValidationResult } ?: valueValidationResult)
                 .asValidationBlockResult()
         }
     }.fold()
 
-fun <T> defaultKeyTransformer(key: T): NonBlankString =
-    NonBlankString(key?.toString() ?: "null")
+class Named<T>(val value: T, val name: NonBlankString)
 
-class NamedValue<T>(val value: T, val name: NonBlankString)
+fun <T> T.namedAs(name: NonBlankString): Named<T> = Named(this, name)
 
-fun <T> T.namedAs(name: NonBlankString): NamedValue<T> = NamedValue(this, name)
+fun <T> KProperty0<T>.toNamed(): Named<T> = Named(get(), !name)
 
-typealias ValidationBlock<V> = suspend Validation<V>.() -> ValidationBlockResult<*>
+typealias ValidationBlock<V> = suspend Validation<V>.() -> ValidationOperationStatus
 
-typealias ValidationBlock1<V, P1> = suspend Validation<V>.(P1) -> ValidationBlockResult<*>
+typealias ValidationBlock1<V, P1> = suspend Validation<V>.(P1) -> ValidationOperationStatus
 
-sealed interface ValidationBlockResult<T> {
-    val value: Result<T>
-}
+typealias ValidationOperationStatus = Result<ValidationResult>
 
-private fun Collection<ValidationBlockResult<ValidationResult>>.fold():
-        ValidationBlockResult<ValidationResult> =
+private fun Collection<ValidationOperationStatus>.fold(): ValidationOperationStatus =
     map {
-        it.value.fold(
+        it.fold(
             onFailure = { _ -> return it },
             onSuccess = { validationResult -> return@map validationResult }
         )
@@ -208,13 +165,5 @@ private fun Collection<ValidationBlockResult<ValidationResult>>.fold():
         ValidationResult::plus
     ).asValidationBlockResult()
 
-@JvmInline
-private value class ValidationBlockResultInternal<T>(
-    override val value: Result<T>
-) : ValidationBlockResult<T>
-
-private fun <T> Throwable.asValidationBlockResult() = ValidationBlockResultInternal<T>(Result.failure(this))
-
-private fun <T> Result<T>.asValidationBlockResult() = ValidationBlockResultInternal(this)
-
-private fun ValidationResult.asValidationBlockResult() = ValidationBlockResultInternal(Result.success(this))
+private fun ValidationResult.asValidationBlockResult() =
+    Result.success(this)

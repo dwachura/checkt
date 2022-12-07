@@ -81,11 +81,11 @@ class ValidationScope private constructor(
         val check = rule.check
         return when (check(value)) {
             false -> {
-                val errorDetailsBuilderContext =
+                val errorDetails = rule.errorDetails(
                     ErrorDetailsBuilderContext(value, validationPath, check)
-                val errorDetails =
-                    rule.errorDetails(errorDetailsBuilderContext)
-                ValidationError(value, rule.validationContext, validationPath, errorDetails)
+                )
+                val errorContext = ValidationError.Context(check, validationPath)
+                ValidationError(value, errorContext, errorDetails)
                     .also { errors += it }
             }
             true -> null

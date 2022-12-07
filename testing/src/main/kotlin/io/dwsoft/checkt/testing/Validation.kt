@@ -2,14 +2,12 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
-import io.dwsoft.checkt.core.ValidationPathBuilder
 import io.dwsoft.checkt.core.ValidationResult
 import io.dwsoft.checkt.core.ValidationSpec
 import io.dwsoft.checkt.core.checkKey
 import io.dwsoft.checkt.core.joinToString
 import io.dwsoft.checkt.core.unnamed
 import io.dwsoft.checkt.core.validate
-import io.dwsoft.checkt.core.validationPath
 import io.kotest.assertions.asClue
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldNotThrowAny
@@ -43,7 +41,7 @@ fun ValidationResult.shouldFailBecause(vararg violations: Violation<*>) {
                     val expectedCheckType = violation.check.shortIdentifier
                     val readableExpectedPath = expectedPath.joinToString()
                     val maybeError = errors.firstOrNull {
-                        it.validationPath == expectedPath
+                        it.validationContext.path == expectedPath
                                 && it.validatedValue == expectedValue
                     }
                     val error =

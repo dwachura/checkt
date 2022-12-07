@@ -1,7 +1,6 @@
 package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Segment
-import io.dwsoft.checkt.core.ValidationPathBuildingScope.LazyTailAppender
 
 /**
  * Non-blank string representation.
@@ -108,71 +107,4 @@ private data class ValidationPathImpl(
     companion object {
         val empty = ValidationPath(Segment.Empty)
     }
-}
-
-typealias ValidationPathBuilder = ValidationPathBuildingScope.() -> ValidationPath
-
-fun validationPath(block: ValidationPathBuilder): ValidationPath = ValidationPathBuildingScope().block()
-
-// TODO: kdocks?
-class ValidationPathBuildingScope {
-    operator fun String.unaryMinus(): ValidationPath = startPath(from = this)
-
-    operator fun LazyTailAppender.unaryMinus(): ValidationPath = toPath()
-
-    operator fun ValidationPath?.div(name: String): ValidationPath = appendSegment(name)
-
-    operator fun ValidationPath?.div(block: LazyTailAppender): ValidationPath = appendSegment(block)
-
-    operator fun String.get(key: String): LazyTailAppender =
-        appendLazily(this).appendIndex(Segment.Index(!key))
-
-    operator fun String.get(index: NumericIndex): LazyTailAppender =
-        appendLazily(this).appendIndex(Segment.Index(index.idx))
-
-    operator fun LazyTailAppender.get(index: NumericIndex): LazyTailAppender =
-        this.appendIndex(Segment.Index(index.idx))
-
-    operator fun LazyTailAppender.get(key: String): LazyTailAppender =
-        this.appendIndex(Segment.Index(!key))
-
-    val Int.idx: NumericIndex
-        get() = NumericIndex(this)
-
-    private fun startPath(from: String): ValidationPath =
-        from.toSegment().let {
-            when (it) {
-                is Segment.Empty -> ValidationPath.unnamed
-                is Segment.Name -> ValidationPath.named(it)
-                else -> throw RuntimeException("Cannot happen")
-            }
-        }
-
-    private fun String.toSegment(): Segment =
-        when {
-            isBlank() -> Segment.Empty
-            else -> Segment.Name(!this)
-        }
-
-    private fun LazyTailAppender.toPath(): ValidationPath = this(null)
-
-    private fun ValidationPath?.appendSegment(name: String): ValidationPath =
-        when (this) {
-            null -> startPath(from = name)
-            else -> this + name.toSegment()
-        }
-
-    private fun ValidationPath?.appendSegment(block: LazyTailAppender): ValidationPath =
-        block(this)
-
-    private fun appendLazily(name: String): LazyTailAppender =
-        LazyTailAppender { it.appendSegment(name) }
-
-    private fun LazyTailAppender.appendIndex(index: Segment.Index): LazyTailAppender =
-        LazyTailAppender { this(it) + index }
-
-    @JvmInline
-    value class NumericIndex(val idx: Int)
-
-    fun interface LazyTailAppender : ((ValidationPath?) -> ValidationPath)
 }

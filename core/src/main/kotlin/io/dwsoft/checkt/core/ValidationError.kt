@@ -2,7 +2,20 @@ package io.dwsoft.checkt.core
 
 data class ValidationError<C : Check<V, P, C>, V, P : Check.Params<C>>(
     val validatedValue: V,
-    val validationContext: ValidationContext<C, P>,
-    val validationPath: ValidationPath,
+    val validationContext: Context<C, P>,
     val errorDetails: String,
-)
+) {
+    data class Context<C : Check<*, P, C>, P : Check.Params<C>>(
+        val key: Check.Key<C>,
+        val params: P,
+        val path: ValidationPath,
+    ) {
+        companion object {
+            operator fun <C : Check<*, P, C>, P : Check.Params<C>> invoke(
+                check: C,
+                validationPath: ValidationPath,
+            ): Context<C, P> =
+                Context(check.key, check.params, validationPath)
+        }
+    }
+}

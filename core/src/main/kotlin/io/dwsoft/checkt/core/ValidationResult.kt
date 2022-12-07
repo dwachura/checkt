@@ -27,6 +27,13 @@ fun Failure.errorMessages(): List<String> =
 fun List<ValidationError<*, *, *>>.toValidationResult(): ValidationResult =
     if (this.isEmpty()) Success else Failure(this)
 
+fun <C : Check<V, P, C>, V, P : Check.Params<C>>
+        ValidationError<C, V, P>?.toValidationResult(): ValidationResult =
+    when (this) {
+        null -> emptyList()
+        else -> listOf(this)
+    }.toValidationResult()
+
 data class ValidationFailure(val errors: List<ValidationError<*, *, *>>) : RuntimeException()
 
 fun ValidationResult.throwIfFailure(): Unit =

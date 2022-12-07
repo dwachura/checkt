@@ -23,11 +23,3 @@ fun <C : Check<V, P, C>, V, P : Check.Params<C>> C.toValidationRule(
     errorDetails: LazyErrorDetails<C, V, P>
 ): ValidationRule<C, V, P>
     = ValidationRule(this, errorDetails)
-
-data class ValidationContext<C : Check<*, P, C>, P : Check.Params<C>>(
-    val key: Check.Key<C>,
-    val params: P,
-)
-
-val <C : Check<*, P, C>, P : Check.Params<C>> ValidationRule<C, *, P>.validationContext: ValidationContext<C, P>
-    get() = ValidationContext(check.key, check.params)

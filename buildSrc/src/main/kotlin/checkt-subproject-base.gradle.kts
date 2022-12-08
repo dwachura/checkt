@@ -31,7 +31,7 @@ findProperty("checkt.testing.disabled") ?: run {
 findProperty("checkt.maven.publishing.disabled") ?: run {
     apply { plugin("org.gradle.maven-publish") }
 
-    val artifactName = "${rootProject.name}-${project.name}"
+    val artifactName = artifactName()
 
     publishing {
         publications {

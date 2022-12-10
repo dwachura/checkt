@@ -5,12 +5,16 @@ import io.dwsoft.checkt.core.ValidationSpecification
 import io.dwsoft.checkt.core.ValidationStatus
 import kotlin.reflect.KClass
 
+inline fun <reified T : Any> ValidationSpecification<T>.asValidator(): Validator<T> =
+    Validator(this)
+
 class Validator<V : Any> private constructor(
-    private val validationSpecification: ValidationSpecification<V>,
+    val validationSpecification: ValidationSpecification<V>,
     private val supportedType: KClass<V>,
 ) {
     suspend fun validate(value: V, name: NonBlankString? = null): ValidationStatus {
-        return validationSpecification(value, name)
+        val valueStatus = validationSpecification(value, name)
+        return valueStatus
     }
 
     fun <T : Any> supportsClass(other: KClass<T>): Boolean =
@@ -28,10 +32,6 @@ class Validator<V : Any> private constructor(
             Validator(validationSpecification, supportedType)
     }
 }
-
-inline fun <reified T : Any> ValidationSpecification<T>.asValidator(): Validator<T> =
-    Validator(this)
-
 //
 //
 //fun <V : Validated<V>> V.validate(): ValidationResult = validator.validate(this)

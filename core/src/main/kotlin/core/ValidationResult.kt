@@ -37,7 +37,7 @@ fun <C : Check<V, P, C>, V, P : Check.Params<C>>
 data class ValidationFailure(val errors: List<ValidationError<*, *, *>>) : RuntimeException()
 
 fun ValidationResult.throwIfFailure(): Unit =
-    when(this) {
+    when (this) {
         is Failure -> throw ValidationFailure(errors)
         Success -> Unit
     }
@@ -48,13 +48,16 @@ fun ValidationFailure.errorMessages(): List<String> =
 typealias ValidationStatus = Result<ValidationResult>
 
 fun Collection<ValidationStatus>.fold(): ValidationStatus =
-    map {
-        it.fold(
-            onFailure = { _ -> return it },
-            onSuccess = { validationResult -> return@map validationResult }
-        )
-    }.reduce(
-        ValidationResult::plus
-    ).asValidationStatus()
+    when {
+        this.isNotEmpty() -> {
+            map {
+                it.fold(
+                    onFailure = { _ -> return it },
+                    onSuccess = { validationResult -> return@map validationResult }
+                )
+            }.reduce(ValidationResult::plus)
+        }
+        else -> Success
+    }.asValidationStatus()
 
 fun ValidationResult.asValidationStatus(): ValidationStatus = Result.success(this)

@@ -1,14 +1,10 @@
 package io.dwsoft.checkt.validator
 
+import io.dwsoft.checkt.core.ValidationSpecification
 import io.dwsoft.checkt.core.ValidationStatus
 
-interface Validated<V : Any> {
+interface Validated<V : Validated<V>> {
     val validator: Validator<V>
-}
-
-//TODO: hide
-class SelfValidated (private val validated: Validated<*>) {
-    suspend fun validate(): ValidationStatus = (validated.validator as Validator<Any>).validate(validated)
 }
 
 fun <T : Validated<T>> delegatingTo(validator: Validator<T>): Validated<T> =
@@ -17,5 +13,26 @@ fun <T : Validated<T>> delegatingTo(validator: Validator<T>): Validated<T> =
             get() = validator
     }
 
-fun <T : Any> Validated<T>.asSelfValidated(): SelfValidated?
-    = if (validator.supportsClass(this::class)) SelfValidated(this) else null
+// TODO: delegatingTo { value }.validatedBy(spec/validator) 
+inline fun <reified T : Validated<T>, S> delegatingTo(
+    noinline withSubject: T.() -> S,
+    crossinline validatedBy: ValidationSpecification<S>,
+): Validated<T> =
+    delegatingTo(
+        Validator { validatedBy(withSubject(), it) }
+    )
+
+class SelfValidated private constructor(private val validated: Validated<*>) {
+    @Suppress("UNCHECKED_CAST")
+    suspend fun validate(): ValidationStatus =
+        (validated.validator as Validator<Any>).validate(validated)
+
+    companion object {
+        fun of(validated: Validated<*>): SelfValidated? =
+            with(validated.validator) {
+                if (supportsClass(validated::class)) SelfValidated(validated) else null
+            }
+    }
+}
+
+fun <T : Validated<T>> Validated<T>.asSelfValidated() = SelfValidated.of(this)

@@ -11,7 +11,7 @@ import io.kotest.matchers.nulls.shouldNotBeNull
 
 // TODO: clean-up
 class ValidatorTests : FreeSpec({
-    "test1" {
+    "simple dto" {
         data class CreateUserRequest(
             val firstName: String = "",
             val lastName: String = "",
@@ -40,5 +40,20 @@ class ValidatorTests : FreeSpec({
                 request.middleName.violated<AlwaysFailingCheck>(underPath = { -"" / "middleName" }, withMessage = "4"),
                 request.phoneNumber.violated<AlwaysFailingCheck>(underPath = { -"" / "phoneNumber" }, withMessage = "5"),
             )
+    }
+
+    "value class" {
+        class ValueClass(val value: String) :
+            Validated<ValueClass> by delegatingTo(
+                { value },
+                validatedBy = validationSpec { +alwaysFailWithMessage { "1" } }
+            )
+
+        val validated = ValueClass("abcd")
+
+        validated.asSelfValidated()?.validate()
+            .shouldNotBeNull()
+            .shouldRepresentCompletedValidation()
+            .shouldFailBecause(validated.value.violated<AlwaysFailingCheck>(withMessage = "1"))
     }
 })

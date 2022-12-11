@@ -1,9 +1,9 @@
 package io.dwsoft.checkt.core
 
-data class ValidationError<C : Check<V, P, C>, V, P : Check.Params<C>>(
+data class Violation<C : Check<V, P, C>, V, P : Check.Params<C>>(
     val validatedValue: V,
     val validationContext: Context<C, P>,
-    val errorDetails: String,
+    val errorMessage: String,
 ) {
     data class Context<C : Check<*, P, C>, P : Check.Params<C>>(
         val key: Check.Key<C>,

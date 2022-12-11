@@ -1,12 +1,12 @@
 package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.Check.Parameterless.Companion.delegate
-import io.dwsoft.checkt.testing.AlwaysFailingCheck
-import io.dwsoft.checkt.testing.alwaysFailWithMessage
+import io.dwsoft.checkt.testing.failWithMessage
+import io.dwsoft.checkt.testing.failed
+import io.dwsoft.checkt.testing.pass
 import io.dwsoft.checkt.testing.shouldFailBecause
 import io.dwsoft.checkt.testing.shouldRepresentCompletedValidation
 import io.dwsoft.checkt.testing.testValidation
-import io.dwsoft.checkt.testing.violated
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.result.shouldBeFailure
 import io.kotest.property.Arb
@@ -26,15 +26,15 @@ class ValidationTests : FreeSpec({
     "Validation in root scope" {
         testValidation(
             of = Dto(),
-            with = validationSpec {
-                +alwaysFailWithMessage { "1" }
-                subject.simpleValue require alwaysFailWithMessage { "2" }
+            with = validation {
+                +failWithMessage { "1" }
+                subject.simpleValue require failWithMessage { "2" }
             }
         ) {
             result.shouldRepresentCompletedValidation()
                 .shouldFailBecause(
-                    validated.violated<AlwaysFailingCheck>(withMessage = "1"),
-                    validated.simpleValue.violated<AlwaysFailingCheck>(withMessage = "2"),
+                    validated.failed(withMessage = "1"),
+                    validated.simpleValue.failed(withMessage = "2"),
                 )
         }
     }
@@ -42,18 +42,18 @@ class ValidationTests : FreeSpec({
     "Validation in nested scope" {
         testValidation(
             of = Dto(),
-            with = validationSpec {
-                subject.simpleValue.namedAs(!"simpleVal") require { +alwaysFailWithMessage { "1" } }
-                subject::collection require { +alwaysFailWithMessage { "2" } }
+            with = validation {
+                subject.simpleValue.namedAs(!"simpleVal") require { +failWithMessage { "1" } }
+                subject::collection require { +failWithMessage { "2" } }
             }
         ) {
             result.shouldRepresentCompletedValidation()
                 .shouldFailBecause(
-                    validated.simpleValue.violated<AlwaysFailingCheck>(
+                    validated.simpleValue.failed(
                         withMessage = "1",
                         underPath = { -"" / "simpleVal" }
                     ),
-                    validated.collection.violated<AlwaysFailingCheck>(
+                    validated.collection.failed(
                         withMessage = "2",
                         underPath = { -"" / "collection" }
                     ),
@@ -64,7 +64,7 @@ class ValidationTests : FreeSpec({
     "Elements of iterable properties are validated" {
         val toValidate = Dto()
         val expectedViolations = toValidate.collection.mapIndexed { idx, elem ->
-            elem.violated<AlwaysFailingCheck>(
+            elem.failed(
                 underPath = { -"" / "collection"[idx.idx] },
                 withMessage = "$idx"
             )
@@ -72,10 +72,10 @@ class ValidationTests : FreeSpec({
 
         testValidation(
             of = toValidate,
-            with = validationSpec {
+            with = validation {
                 subject::collection require {
                     eachElement { idx ->
-                        subject require alwaysFailWithMessage { "$idx" }
+                        subject require failWithMessage { "$idx" }
                     }
                 }
             }
@@ -89,11 +89,11 @@ class ValidationTests : FreeSpec({
         val toValidate = Dto()
         val expectedViolations = toValidate.map.map { (key, value) ->
             val expectedMessage = "$key:$value"
-            key.violated<AlwaysFailingCheck>(
+            key.failed(
                 withMessage = expectedMessage,
                 underPath = { -"" / "map"["$key"] / "key" }
             )
-            value.violated<AlwaysFailingCheck>(
+            value.failed(
                 withMessage = expectedMessage,
                 underPath = { -"" / "map"["$key"] / "value" }
             )
@@ -101,11 +101,11 @@ class ValidationTests : FreeSpec({
 
         testValidation(
             of = toValidate,
-            with = validationSpec {
+            with = validation {
                 subject::map require {
                     eachEntry(
-                        keyValidation = { value -> +alwaysFailWithMessage { "$subject:$value" } },
-                        valueValidation = { key -> +alwaysFailWithMessage { "$key:$subject" } },
+                        keyValidation = { value -> +failWithMessage { "$subject:$value" } },
+                        valueValidation = { key -> +failWithMessage { "$key:$subject" } },
                     )
                 }
             }
@@ -122,7 +122,7 @@ class ValidationTests : FreeSpec({
             class ThrowingCheck(val ex: Throwable) :
                 Check.Parameterless<Any, ThrowingCheck> by delegate({ throw ex })
 
-            val spec = validationSpec<Dto> {
+            val spec = validation<Dto> {
                 subject::simpleValue require {
                     +ThrowingCheck(expectedException).toValidationRule { "" }
                 }
@@ -134,7 +134,7 @@ class ValidationTests : FreeSpec({
         }
 
         "Exceptions from nested scopes are caught" {
-            val spec = validationSpec<Dto> {
+            val spec = validation<Dto> {
                 subject::simpleValue require {
                     subject::length require {
                         subject.namedAs(!"deeper") require { throw expectedException }
@@ -145,6 +145,21 @@ class ValidationTests : FreeSpec({
             testValidation(Dto(), spec) {
                 result.shouldBeFailure(expectedException)
             }
+        }
+    }
+
+    "Rules are processed conditionally" {
+        val failFirst = "fail"
+        val spec = validation<Dto> {
+            val result = if (subject.simpleValue === failFirst) +failWithMessage { "1" } else +pass
+            result.whenValid { +failWithMessage { "2" } }
+        }
+
+        testValidation(Dto(simpleValue = failFirst), spec) {
+            result.shouldFailBecause(validated.failed(withMessage = "1"))
+        }
+        testValidation(Dto(), spec) {
+            result.shouldFailBecause(validated.failed(withMessage = "2"))
         }
     }
 })

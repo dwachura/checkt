@@ -6,7 +6,7 @@ import kotlin.reflect.KClass
 interface Check<in V, P : Check.Params<SELF>, SELF : Check<V, P, SELF>> {
     val params: P
 
-    operator fun invoke(value: V): Boolean
+    suspend operator fun invoke(value: V): Boolean
 
     /**
      * Unique key for [Check] type.
@@ -40,7 +40,7 @@ interface Check<in V, P : Check.Params<SELF>, SELF : Check<V, P, SELF>> {
                 object : Parameterless<V, C> {
                     override val params: None<C> = None()
 
-                    override fun invoke(value: V): Boolean = implementation(value)
+                    override suspend fun invoke(value: V): Boolean = implementation(value)
                 }
         }
     }

@@ -1,7 +1,7 @@
 package io.dwsoft.checkt.core.checks
 
 import io.dwsoft.checkt.core.Check
-import io.dwsoft.checkt.core.LazyErrorDetails
+import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.toValidationRule
 
@@ -10,7 +10,7 @@ class InRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
 {
     override val params = Params(range)
 
-    override fun invoke(value: V): Boolean =
+    override suspend fun invoke(value: V): Boolean =
         value in range
 
     data class Params<V : Comparable<V>>(val range: ClosedRange<V>) : Check.Params<InRange<V>>()
@@ -18,17 +18,17 @@ class InRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
 
 fun <V : Comparable<V>> beInRange(
     range: ClosedRange<V>,
-    errorDetails: LazyErrorDetails<InRange<V>, V, InRange.Params<V>> =
+    errorMessage: LazyErrorMessage<InRange<V>, V, InRange.Params<V>> =
         { "${validationPath()} must be in range ${validationParams.range}" },
 ): ValidationRule<InRange<V>, V, InRange.Params<V>> =
-    InRange(range).toValidationRule(errorDetails)
+    InRange(range).toValidationRule(errorMessage)
 
 class OutsideRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
     Check<V, OutsideRange.Params<V>, OutsideRange<V>>
 {
     override val params = Params(range)
 
-    override fun invoke(value: V): Boolean =
+    override suspend fun invoke(value: V): Boolean =
         value !in range
 
     data class Params<V : Comparable<V>>(val range: ClosedRange<V>) : Check.Params<OutsideRange<V>>()
@@ -36,7 +36,7 @@ class OutsideRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
 
 fun <V : Comparable<V>> beOutsideRange(
     range: ClosedRange<V>,
-    errorDetails: LazyErrorDetails<OutsideRange<V>, V, OutsideRange.Params<V>> =
+    errorMessage: LazyErrorMessage<OutsideRange<V>, V, OutsideRange.Params<V>> =
         { "${validationPath()} must not be in range ${validationParams.range}" },
 ): ValidationRule<OutsideRange<V>, V, OutsideRange.Params<V>> =
-    OutsideRange(range).toValidationRule(errorDetails)
+    OutsideRange(range).toValidationRule(errorMessage)

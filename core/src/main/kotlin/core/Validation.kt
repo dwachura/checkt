@@ -1,5 +1,7 @@
 package io.dwsoft.checkt.core
 
+import io.dwsoft.checkt.core.ValidationPath.Segment.Index
+import io.dwsoft.checkt.core.ValidationPath.Segment.Name
 import kotlin.reflect.KProperty0
 
 /*
@@ -20,7 +22,7 @@ typealias ValidationSpecification<T> = suspend T.(NonBlankString?) -> Validation
  * Entry point of defining [validation logic][ValidationSpecification] for values
  * of type [T].
  */
-fun <T> validationSpec(validationBlock: ValidationBlock<T>): ValidationSpecification<T> =
+fun <T> validation(validationBlock: ValidationBlock<T>): ValidationSpecification<T> =
     { namedAs ->
         runCatching {
             val scope = namedAs?.let { ValidationScope(it) } ?: ValidationScope()
@@ -30,12 +32,12 @@ fun <T> validationSpec(validationBlock: ValidationBlock<T>): ValidationSpecifica
     }
 
 /**
- * Shortcut for immediate invocation of [validation specification][validationSpec].
+ * Shortcut for immediate invocation of [validation specification][validation].
  */
 suspend fun <T> T.validate(
     namedAs: NonBlankString? = null,
     validationBlock: ValidationBlock<T>
-) = validationSpec(validationBlock)(this, namedAs)
+) = validation(validationBlock)(this, namedAs)
 
 /**
  * Validation logic builder/DSL.
@@ -54,7 +56,7 @@ class Validation<V>(val subject: V, private val scope: ValidationScope) {
      * a new, [named][Named.name] scope.
      */
     suspend infix fun <T> Named<T>.require(validationBlock: ValidationBlock<T>) =
-        runEnclosed(value, ValidationPath.Segment.Name(name), validationBlock)
+        runEnclosed(value, Name(name), validationBlock)
 
     /**
      * "Overloaded" version of [Named.require] function that takes property as
@@ -69,15 +71,31 @@ class Validation<V>(val subject: V, private val scope: ValidationScope) {
      * given [value][this]. Any errors are registered under a scope created by the
      * current [context][Validation].
      */
-    infix fun <C : Check<T, P, C>, T : Any?, P : Check.Params<C>> T.require(
+    suspend infix fun <C : Check<T, P, C>, T : Any?, P : Check.Params<C>> T.require(
         toBeValidAgainst: ValidationRule<C, T, P>,
     ) = checkValueAgainstRule(this, toBeValidAgainst)
 
     /**
      * Tests the [currently validated value][subject] against given [validation rule][this].
      */
-    operator fun <C : Check<V, P, C>, P : Check.Params<C>> ValidationRule<C, V, P>.unaryPlus() =
+    suspend operator fun <C : Check<V, P, C>, P : Check.Params<C>> ValidationRule<C, V, P>.unaryPlus() =
         subject.require(toBeValidAgainst = this)
+
+    /**
+     * Runs given [block] only when the [status][ValidationStatus] represents "valid"
+     * validation result, i.e. completed without throwing any exceptions and is
+     * [successful validation][ValidationResult.Success] (containing no [violations][Violation]).
+     */
+    suspend fun ValidationStatus.whenValid(block: ValidationBlock<V>): ValidationStatus =
+        fold(
+            onSuccess = {
+                when (it) {
+                    ValidationResult.Success -> block()
+                    else -> it.asValidationStatus()
+                }
+            },
+            onFailure = { return this }
+        )
 
     internal suspend fun <T> runEnclosed(
         value: T,
@@ -92,7 +110,7 @@ class Validation<V>(val subject: V, private val scope: ValidationScope) {
             }.result
         }
 
-    private fun <C : Check<T, P, C>, T : Any?, P : Check.Params<C>> checkValueAgainstRule(
+    private suspend fun <C : Check<T, P, C>, T : Any?, P : Check.Params<C>> checkValueAgainstRule(
         value: T,
         rule: ValidationRule<C, T, P>,
     ): ValidationStatus =
@@ -112,7 +130,7 @@ suspend fun <T : Iterable<EL>, EL> Validation<T>.eachElement(
     validationBlock: ValidationBlock1<EL, Int>,
 ): ValidationStatus =
     subject.mapIndexed { idx, value ->
-        runEnclosed(value, ValidationPath.Segment.Index(idx)) {
+        runEnclosed(value, Index(idx)) {
             validationBlock(idx)
         }
     }.fold()
@@ -136,22 +154,20 @@ suspend fun <T : Map<K, V>, K, V> Validation<T>.eachEntry(
 ): ValidationStatus =
     subject.map { entry ->
         val key = entry.key
-        val indexSegment = ValidationPath.Segment.Index(displayingKeysAs(key))
-        runEnclosed(entry, indexSegment) newScope@{
+        val indexSegment = Index(displayingKeysAs(key))
+        runEnclosed(entry, indexSegment) entry@{
             val value = entry.value
-            val keyValidationResult = keyValidation?.let {
-                this@newScope.runEnclosed(
-                    key,
-                    ValidationPath.Segment.Name(!"key")
-                ) keyScope@{ this@keyScope.keyValidation(value) }
-            }?.getOrThrow()
-            val valueValidationResult = runEnclosed(
-                value,
-                ValidationPath.Segment.Name(!"value")
-            ) valueScope@{ this@valueScope.valueValidation(key) }
-                .getOrThrow()
-            (keyValidationResult?.let { it + valueValidationResult } ?: valueValidationResult)
-                .asValidationStatus()
+            val valueValidationResult = runEnclosed(value, Name(!"value")) value@{
+                this@value.valueValidation(key)
+            }.getOrThrow()
+            val entryValidationResult = keyValidation?.let {
+                val keyValidationResult =
+                    this@entry.runEnclosed(key, Name(!"key")) key@{
+                        this@key.keyValidation(value)
+                    }.getOrThrow()
+                keyValidationResult + valueValidationResult
+            } ?: valueValidationResult
+            entryValidationResult.asValidationStatus()
         }
     }.fold()
 

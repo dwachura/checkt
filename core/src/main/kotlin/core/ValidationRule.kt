@@ -2,10 +2,10 @@ package io.dwsoft.checkt.core
 
 class ValidationRule<C : Check<V, P, C>, in V, P : Check.Params<C>>(
     val check: C,
-    val errorDetails: LazyErrorDetails<C, out V, P>,
+    val errorMessage: LazyErrorMessage<C, out V, P>,
 )
 
-class ErrorDetailsBuilderContext<C : Check<V, P, C>, V, P : Check.Params<C>> internal constructor(
+class ErrorMessageBuilderContext<C : Check<V, P, C>, V, P : Check.Params<C>> internal constructor(
     val value: V,
     val validationPath: ValidationPath,
     check: C,
@@ -17,9 +17,9 @@ class ErrorDetailsBuilderContext<C : Check<V, P, C>, V, P : Check.Params<C>> int
         validationPath.joinToString { acc, str -> "$acc$separator$str" }
 }
 
-typealias LazyErrorDetails<C, V, P> = ErrorDetailsBuilderContext<C, out V, P>.() -> String
+typealias LazyErrorMessage<C, V, P> = ErrorMessageBuilderContext<C, out V, P>.() -> String
 
 fun <C : Check<V, P, C>, V, P : Check.Params<C>> C.toValidationRule(
-    errorDetails: LazyErrorDetails<C, V, P>
+    errorMessage: LazyErrorMessage<C, V, P>
 ): ValidationRule<C, V, P>
-    = ValidationRule(this, errorDetails)
+    = ValidationRule(this, errorMessage)

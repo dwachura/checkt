@@ -1,11 +1,9 @@
 package io.dwsoft.checkt.validator
 
-import io.dwsoft.checkt.core.validationSpec
-import io.dwsoft.checkt.testing.AlwaysFailingCheck
-import io.dwsoft.checkt.testing.alwaysFailWithMessage
+import io.dwsoft.checkt.core.validation
+import io.dwsoft.checkt.testing.failWithMessage
+import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.shouldFailBecause
-import io.dwsoft.checkt.testing.shouldRepresentCompletedValidation
-import io.dwsoft.checkt.testing.violated
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
 
@@ -18,42 +16,38 @@ class ValidatorTests : FreeSpec({
             val age: Int = 1,
             val middleName: String? = null,
             val phoneNumber: String? = null,
-        ) : Validated<CreateUserRequest> by delegatingTo(
-            validationSpec<CreateUserRequest> {
-                subject::firstName require { +alwaysFailWithMessage { "1" } }
-                subject::lastName require { +alwaysFailWithMessage { "2" } }
-                subject::age require { +alwaysFailWithMessage { "3" } }
-                subject::middleName require { +alwaysFailWithMessage { "4" } }
-                subject::phoneNumber require { +alwaysFailWithMessage { "5" } }
-            }.asValidator()
-        )
+        ) : Validated<CreateUserRequest> by delegate(validation {
+            subject::firstName require { +failWithMessage { "1" } }
+            subject::lastName require { +failWithMessage { "2" } }
+            subject::age require { +failWithMessage { "3" } }
+            subject::middleName require { +failWithMessage { "4" } }
+            subject::phoneNumber require { +failWithMessage { "5" } }
+        })
 
         val request = CreateUserRequest()
 
         request.asSelfValidated()?.validate()
             .shouldNotBeNull()
-            .shouldRepresentCompletedValidation()
             .shouldFailBecause(
-                request.firstName.violated<AlwaysFailingCheck>(underPath = { -"" / "firstName" }, withMessage = "1"),
-                request.lastName.violated<AlwaysFailingCheck>(underPath = { -"" / "lastName" }, withMessage = "2"),
-                request.age.violated<AlwaysFailingCheck>(underPath = { -"" / "age" }, withMessage = "3"),
-                request.middleName.violated<AlwaysFailingCheck>(underPath = { -"" / "middleName" }, withMessage = "4"),
-                request.phoneNumber.violated<AlwaysFailingCheck>(underPath = { -"" / "phoneNumber" }, withMessage = "5"),
+                request.firstName.failed(underPath = { -"" / "firstName" }, withMessage = "1"),
+                request.lastName.failed(underPath = { -"" / "lastName" }, withMessage = "2"),
+                request.age.failed(underPath = { -"" / "age" }, withMessage = "3"),
+                request.middleName.failed(underPath = { -"" / "middleName" }, withMessage = "4"),
+                request.phoneNumber.failed(underPath = { -"" / "phoneNumber" }, withMessage = "5"),
             )
     }
 
     "value class" {
         class ValueClass(val value: String) :
-            Validated<ValueClass> by delegatingTo(
-                { value },
-                validatedBy = validationSpec { +alwaysFailWithMessage { "1" } }
+            Validated<ValueClass> by delegate(
+                validating = { value },
+                by = validation { +failWithMessage { "1" } }
             )
 
         val validated = ValueClass("abcd")
 
         validated.asSelfValidated()?.validate()
             .shouldNotBeNull()
-            .shouldRepresentCompletedValidation()
-            .shouldFailBecause(validated.value.violated<AlwaysFailingCheck>(withMessage = "1"))
+            .shouldFailBecause(validated.value.failed(withMessage = "1"))
     }
 })

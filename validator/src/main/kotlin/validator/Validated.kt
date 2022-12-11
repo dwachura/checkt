@@ -7,20 +7,7 @@ interface Validated<V : Validated<V>> {
     val validator: Validator<V>
 }
 
-fun <T : Validated<T>> delegatingTo(validator: Validator<T>): Validated<T> =
-    object : Validated<T> {
-        override val validator: Validator<T>
-            get() = validator
-    }
-
-// TODO: delegatingTo { value }.validatedBy(spec/validator) 
-inline fun <reified T : Validated<T>, S> delegatingTo(
-    noinline withSubject: T.() -> S,
-    crossinline validatedBy: ValidationSpecification<S>,
-): Validated<T> =
-    delegatingTo(
-        Validator { validatedBy(withSubject(), it) }
-    )
+fun <T : Validated<*>> T.asSelfValidated(): SelfValidated? = SelfValidated.from(this)
 
 class SelfValidated private constructor(private val validated: Validated<*>) {
     @Suppress("UNCHECKED_CAST")
@@ -28,11 +15,30 @@ class SelfValidated private constructor(private val validated: Validated<*>) {
         (validated.validator as Validator<Any>).validate(validated)
 
     companion object {
-        fun of(validated: Validated<*>): SelfValidated? =
+        fun from(validated: Validated<*>): SelfValidated? =
             with(validated.validator) {
-                if (supportsClass(validated::class)) SelfValidated(validated) else null
+                if (supportsValue(validated)) SelfValidated(validated) else null
             }
     }
 }
 
-fun <T : Validated<T>> Validated<T>.asSelfValidated() = SelfValidated.of(this)
+fun <T : Validated<T>> delegate(validator: Validator<T>): Validated<T> =
+    object : Validated<T> {
+        override val validator: Validator<T>
+            get() = validator
+    }
+
+inline fun <reified T : Validated<T>> delegate(
+    noinline spec: ValidationSpecification<T>
+) = delegate(spec.asValidator())
+
+inline fun <reified T : Validated<T>, S> delegate(
+    noinline validating: T.() -> S,
+    crossinline by: ValidationSpecification<S>,
+): Validated<T> =
+    delegate(Validator { by(validating(), it) })
+
+inline fun <reified T : Validated<T>, S : Validated<S>> delegate(
+    noinline validating: T.() -> S,
+    by: Validator<S>,
+) = delegate(validating, by.validationSpecification)

@@ -1,9 +1,5 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.checks.GreaterThan
-import io.dwsoft.checkt.core.checks.GreaterThanOrEqual
-import io.dwsoft.checkt.core.checks.LessThan
-import io.dwsoft.checkt.core.checks.LessThanOrEqual
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.shouldNotPass
 import io.dwsoft.checkt.testing.shouldPass

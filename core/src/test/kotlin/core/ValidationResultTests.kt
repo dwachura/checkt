@@ -16,11 +16,11 @@ class ValidationResultTests : StringSpec({
                 left is Success && right is Success ->
                     left + right shouldBe Success
                 left is Success && right is Failure ->
-                    left + right shouldBe failure(withErrorsOf = right)
+                    left + right shouldBe failure(withViolationsOf = right)
                 left is Failure && right is Success ->
-                    left + right shouldBe failure(withErrorsOf = left)
+                    left + right shouldBe failure(withViolationsOf = left)
                 left is Failure && right is Failure ->
-                    left + right shouldBe failure(withErrorsOf = listOf(left, right))
+                    left + right shouldBe failure(withViolationsOf = listOf(left, right))
             }
         }
     }
@@ -42,12 +42,12 @@ private data class MergingCase(
 private infix fun ValidationResult.to(right: ValidationResult): MergingCase =
     MergingCase(this, right)
 
-private fun failure(withErrorsOf: List<Failure> = emptyList()): Failure =
+private fun failure(withViolationsOf: List<Failure> = emptyList()): Failure =
     when {
-        withErrorsOf.isEmpty() -> Failure(validationError())
-        else -> Failure(withErrorsOf.flatMap { it.errors })
+        withViolationsOf.isEmpty() -> Failure(violation())
+        else -> Failure(withViolationsOf.flatMap { it.violations })
     }
 
-private fun failure(withErrorsOf: Failure): Failure = failure(listOf(withErrorsOf))
+private fun failure(withViolationsOf: Failure): Failure = failure(listOf(withViolationsOf))
 
-private fun validationError() = mockk<ValidationError<*, *, *>>()
+private fun violation() = mockk<Violation<*, *, *>>()

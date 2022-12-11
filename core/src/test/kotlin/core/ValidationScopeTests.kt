@@ -1,9 +1,9 @@
 package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Segment.Name
-import io.dwsoft.checkt.testing.alwaysFailWithMessage
-import io.dwsoft.checkt.testing.alwaysFail
-import io.dwsoft.checkt.testing.alwaysPass
+import io.dwsoft.checkt.testing.failWithMessage
+import io.dwsoft.checkt.testing.fail
+import io.dwsoft.checkt.testing.pass
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
@@ -16,21 +16,21 @@ class ValidationScopeTests : StringSpec({
         val validationScope = ValidationScope()
 
         with(validationScope) {
-            checkValueAgainstRule(Any(), alwaysPass)
+            checkValueAgainstRule(Any(), pass)
         }
 
         validationScope.result shouldBe ValidationResult.Success
     }
 
-    "Result of failed validation contains all errors" {
+    "Result of failed validation contains all violations" {
         val validationScope = ValidationScope()
-        val failingRule = alwaysFailWithMessage { "$value" }
+        val failingRule = failWithMessage { "$value" }
         val validatedValues = listOf("v1", "v2")
-        val errorContext = ValidationError.Context(
+        val violationContext = Violation.Context(
             failingRule.check, ValidationPath.unnamed
         )
-        val expectedErrors = validatedValues.map {
-            ValidationError(it, errorContext, it)
+        val expectedViolations = validatedValues.map {
+            Violation(it, violationContext, it)
         }
 
         with(validationScope) {
@@ -40,7 +40,7 @@ class ValidationScopeTests : StringSpec({
         }
 
         validationScope.result.shouldBeInstanceOf<ValidationResult.Failure>()
-            .errors shouldContainExactlyInAnyOrder expectedErrors
+            .violations shouldContainExactlyInAnyOrder expectedViolations
     }
 
     "Result of a scope is combined of results of scopes it encloses" {
@@ -48,10 +48,10 @@ class ValidationScopeTests : StringSpec({
         val enclosedScope1 = validationScope.enclose(Name(!"enclosed1"))
         val enclosedScope2 = validationScope.enclose(Name(!"enclosed2"))
         val enclosedResult1 = enclosedScope1.apply {
-            checkValueAgainstRule(Any(), alwaysFail)
+            checkValueAgainstRule(Any(), fail)
         }.result
         val enclosedResult2 = enclosedScope2.apply {
-            checkValueAgainstRule(Any(), alwaysFail)
+            checkValueAgainstRule(Any(), fail)
         }.result
 
         val enclosingScopeResult = validationScope.result

@@ -1,7 +1,5 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.checks.Equals
-import io.dwsoft.checkt.core.checks.IsDifferent
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.shouldNotPass
 import io.dwsoft.checkt.testing.shouldPass

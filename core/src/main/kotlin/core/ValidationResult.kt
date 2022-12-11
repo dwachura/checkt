@@ -10,40 +10,40 @@ sealed class ValidationResult {
         override fun plus(other: ValidationResult) = other
     }
 
-    data class Failure(val errors: List<ValidationError<*, *, *>>) : ValidationResult() {
-        constructor(vararg errors: ValidationError<*, *, *>) : this(errors.asList())
+    data class Failure(val violations: List<Violation<*, *, *>>) : ValidationResult() {
+        constructor(vararg violations: Violation<*, *, *>) : this(violations.asList())
 
         override fun plus(other: ValidationResult): ValidationResult =
             when (other) {
                 Success -> this
-                is Failure -> (this.errors + other.errors).toValidationResult()
+                is Failure -> (this.violations + other.violations).toValidationResult()
             }
     }
 }
 
 fun Failure.errorMessages(): List<String> =
-    errors.map { it.errorDetails }
+    violations.map { it.errorMessage }
 
-fun List<ValidationError<*, *, *>>.toValidationResult(): ValidationResult =
+fun List<Violation<*, *, *>>.toValidationResult(): ValidationResult =
     if (this.isEmpty()) Success else Failure(this)
 
 fun <C : Check<V, P, C>, V, P : Check.Params<C>>
-        ValidationError<C, V, P>?.toValidationResult(): ValidationResult =
+        Violation<C, V, P>?.toValidationResult(): ValidationResult =
     when (this) {
         null -> emptyList()
         else -> listOf(this)
     }.toValidationResult()
 
-data class ValidationFailure(val errors: List<ValidationError<*, *, *>>) : RuntimeException()
+data class ValidationFailure(val violations: List<Violation<*, *, *>>) : RuntimeException()
 
 fun ValidationResult.throwIfFailure(): Unit =
     when (this) {
-        is Failure -> throw ValidationFailure(errors)
+        is Failure -> throw ValidationFailure(violations)
         Success -> Unit
     }
 
 fun ValidationFailure.errorMessages(): List<String> =
-    errors.map { it.errorDetails }
+    violations.map { it.errorMessage }
 
 typealias ValidationStatus = Result<ValidationResult>
 

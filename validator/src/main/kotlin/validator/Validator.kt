@@ -10,15 +10,12 @@ inline fun <reified T : Any> ValidationSpecification<T>.asValidator(): Validator
 
 class Validator<V : Any> private constructor(
     val validationSpecification: ValidationSpecification<V>,
-    private val supportedType: KClass<V>,
+    internal val supportedType: KClass<V>,
 ) {
     suspend fun validate(value: V, name: NonBlankString? = null): ValidationStatus {
         val valueStatus = validationSpecification(value, name)
         return valueStatus
     }
-
-    fun <T : Any> supportsClass(other: KClass<T>): Boolean =
-        supportedType == other
 
     companion object {
         inline operator fun <reified T : Any> invoke(
@@ -26,14 +23,16 @@ class Validator<V : Any> private constructor(
         ) = createFor(T::class, validationSpecification)
 
         fun <T : Any> createFor(
-            supportedType: KClass<T>,
+            type: KClass<T>,
             validationSpecification: ValidationSpecification<T>
         ): Validator<T> =
-            Validator(validationSpecification, supportedType)
+            Validator(validationSpecification, type)
     }
 }
-//
-//
+
+internal fun <T : Any> Validator<*>.supportsValue(value: T): Boolean =
+    supportedType.isInstance(value)
+
 //fun <V : Validated<V>> V.validate(): ValidationResult = validator.validate(this)
 //
 //fun <V : Validated<V>> validationSpec(

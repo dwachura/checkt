@@ -6,10 +6,9 @@ import io.dwsoft.checkt.core.ValidationPath.Segment
 //  * readme
 //  * conditional rules
 //  * fail-fast mode
-//  * support for suspension for checks ???
 
 /**
- * [Named][ValidationPath] scope that groups [violations][ValidationError] related
+ * [Named][ValidationPath] scope that groups [violations][Violation] related
  * in some manner (e.g. by the value for which they appeared).
  *
  * Scopes can be [enclosed][enclose] creating naming hierarchies (nested scope's name
@@ -43,7 +42,7 @@ class ValidationScope private constructor(
      */
     val result: ValidationResult
         get() {
-            val thisResult = errors.toValidationResult()
+            val thisResult = violations.toValidationResult()
             val enclosedResults =
                 when {
                     enclosedScopes.isNotEmpty() -> {
@@ -56,7 +55,7 @@ class ValidationScope private constructor(
             return thisResult + enclosedResults
         }
 
-    private val errors: MutableList<ValidationError<*, *, *>> = mutableListOf()
+    private val violations: MutableList<Violation<*, *, *>> = mutableListOf()
     private val enclosedScopes: MutableList<ValidationScope> = mutableListOf()
 
     private val validationPath: ValidationPath =
@@ -93,22 +92,22 @@ class ValidationScope private constructor(
     /**
      * Verifies given value against passed [condition][rule].
      *
-     * Eventual [error][ValidationError] is saved into internal structures of
+     * Eventual [violation][Violation] is saved into internal structures of
      * a scope and returned.
      */
-    fun <C : Check<V, P, C>, V, P : Check.Params<C>> checkValueAgainstRule(
+    suspend fun <C : Check<V, P, C>, V, P : Check.Params<C>> checkValueAgainstRule(
         value: V,
         rule: ValidationRule<C, V, P>,
-    ): ValidationError<C, V, P>? {
+    ): Violation<C, V, P>? {
         val check = rule.check
         return when (check(value)) {
             false -> {
-                val errorDetails = rule.errorDetails(
-                    ErrorDetailsBuilderContext(value, validationPath, check)
+                val errorMessage = rule.errorMessage(
+                    ErrorMessageBuilderContext(value, validationPath, check)
                 )
-                val errorContext = ValidationError.Context(check, validationPath)
-                ValidationError(value, errorContext, errorDetails)
-                    .also { errors += it }
+                val errorContext = Violation.Context(check, validationPath)
+                Violation(value, errorContext, errorMessage)
+                    .also { violations += it }
             }
             true -> null
         }

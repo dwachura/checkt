@@ -3,7 +3,7 @@ package io.dwsoft.checkt.core.checks
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.toValidationRule
+import io.dwsoft.checkt.core.ValidationRules
 
 class Pattern(private val regex: Regex) :
     Check<CharSequence, Pattern.Params, Pattern>
@@ -16,7 +16,7 @@ class Pattern(private val regex: Regex) :
     data class Params(val regex: Regex) : Check.Params<Pattern>()
 }
 
-fun matchRegex(
+fun ValidationRules<CharSequence>.matchRegex(
     regex: Regex,
     errorMessage: LazyErrorMessage<Pattern, CharSequence, Pattern.Params> =
         { "${validationPath()} must match regex '${validationParams.regex}'" },

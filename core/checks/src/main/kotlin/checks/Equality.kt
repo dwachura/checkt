@@ -3,7 +3,7 @@ package io.dwsoft.checkt.core.checks
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.toValidationRule
+import io.dwsoft.checkt.core.ValidationRules
 
 class Equals<V>(private val other: V) : Check<V, Equals.Params<V>, Equals<V>> {
     override val params = Params(other)
@@ -14,11 +14,11 @@ class Equals<V>(private val other: V) : Check<V, Equals.Params<V>, Equals<V>> {
     data class Params<V>(val other: V) : Check.Params<Equals<V>>()
 }
 
-fun <V> beEqualTo(
-    other: V,
-    errorMessage: LazyErrorMessage<Equals<V>, V, Equals.Params<V>> =
+fun <T> ValidationRules<T>.beEqualTo(
+    other: T,
+    errorMessage: LazyErrorMessage<Equals<T>, T, Equals.Params<T>> =
         { "${validationPath()} must equal to ${validationParams.other}" },
-): ValidationRule<Equals<V>, V, Equals.Params<V>> =
+): ValidationRule<Equals<T>, T, Equals.Params<T>> =
     Equals(other).toValidationRule(errorMessage)
 
 class IsDifferent<V>(private val other: V) : Check<V, IsDifferent.Params<V>, IsDifferent<V>> {
@@ -30,9 +30,9 @@ class IsDifferent<V>(private val other: V) : Check<V, IsDifferent.Params<V>, IsD
     data class Params<V>(val other: V) : Check.Params<IsDifferent<V>>()
 }
 
-fun <V> beDifferentThan(
-    other: V,
-    errorMessage: LazyErrorMessage<IsDifferent<V>, V, IsDifferent.Params<V>> =
+fun <T> ValidationRules<T>.beDifferentThan(
+    other: T,
+    errorMessage: LazyErrorMessage<IsDifferent<T>, T, IsDifferent.Params<T>> =
         { "${validationPath()} must be different than ${validationParams.other}" },
-): ValidationRule<IsDifferent<V>, V, IsDifferent.Params<V>> =
+): ValidationRule<IsDifferent<T>, T, IsDifferent.Params<T>> =
     IsDifferent(other).toValidationRule(errorMessage)

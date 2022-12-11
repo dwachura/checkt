@@ -16,7 +16,7 @@ class ValidationScopeTests : StringSpec({
         val validationScope = ValidationScope()
 
         with(validationScope) {
-            checkValueAgainstRule(Any(), pass)
+            checkValueAgainstRule(Any(), ValidationRule.pass)
         }
 
         validationScope.result shouldBe ValidationResult.Success
@@ -24,7 +24,7 @@ class ValidationScopeTests : StringSpec({
 
     "Result of failed validation contains all violations" {
         val validationScope = ValidationScope()
-        val failingRule = failWithMessage { "$value" }
+        val failingRule = ValidationRule.failWithMessage { "$value" }
         val validatedValues = listOf("v1", "v2")
         val violationContext = Violation.Context(
             failingRule.check, ValidationPath.unnamed
@@ -48,10 +48,10 @@ class ValidationScopeTests : StringSpec({
         val enclosedScope1 = validationScope.enclose(Name(!"enclosed1"))
         val enclosedScope2 = validationScope.enclose(Name(!"enclosed2"))
         val enclosedResult1 = enclosedScope1.apply {
-            checkValueAgainstRule(Any(), fail)
+            checkValueAgainstRule(Any(), ValidationRule.fail)
         }.result
         val enclosedResult2 = enclosedScope2.apply {
-            checkValueAgainstRule(Any(), fail)
+            checkValueAgainstRule(Any(), ValidationRule.fail)
         }.result
 
         val enclosingScopeResult = validationScope.result

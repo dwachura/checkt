@@ -3,7 +3,7 @@ package io.dwsoft.checkt.core.checks
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.toValidationRule
+import io.dwsoft.checkt.core.ValidationRules
 
 class ContainsAny<V>(elements: Collection<V>) :
     Check<Collection<V>, ContainsAny.Params<V>, ContainsAny<V>>
@@ -17,11 +17,11 @@ class ContainsAny<V>(elements: Collection<V>) :
     data class Params<V>(val elements: Collection<V>) : Check.Params<ContainsAny<V>>()
 }
 
-fun <V> containAnyOf(
-    vararg elements: V,
-    errorMessage: LazyErrorMessage<ContainsAny<V>, Collection<V>, ContainsAny.Params<V>> =
+fun <T, T2 : Collection<T>> ValidationRules<T2>.containAnyOf(
+    vararg elements: T,
+    errorMessage: LazyErrorMessage<ContainsAny<T>, T2, ContainsAny.Params<T>> =
         { "${validationPath()} must contain any of ${validationParams.elements}" },
-): ValidationRule<ContainsAny<V>, Collection<V>, ContainsAny.Params<V>> =
+): ValidationRule<ContainsAny<T>, T2, ContainsAny.Params<T>> =
     ContainsAny(elements.toList()).toValidationRule(errorMessage)
 
 class ContainsAll<V>(elements: Collection<V>) :
@@ -47,9 +47,9 @@ class ContainsAll<V>(elements: Collection<V>) :
     data class Params<V>(val elements: Collection<V>) : Check.Params<ContainsAll<V>>()
 }
 
-fun <V> containAllOf(
-    vararg elements: V,
-    errorMessage: LazyErrorMessage<ContainsAll<V>, Collection<V>, ContainsAll.Params<V>> =
+fun <T, T2 : Collection<T>> ValidationRules<T2>.containAllOf(
+    vararg elements: T,
+    errorMessage: LazyErrorMessage<ContainsAll<T>, T2, ContainsAll.Params<T>> =
         { "${validationPath()} must contain all of ${validationParams.elements}" },
-): ValidationRule<ContainsAll<V>, Collection<V>, ContainsAll.Params<V>> =
+): ValidationRule<ContainsAll<T>, T2, ContainsAll.Params<T>> =
     ContainsAll(elements.toList()).toValidationRule(errorMessage)

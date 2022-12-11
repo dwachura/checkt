@@ -33,7 +33,7 @@ fun ValidationResult.shouldPass() {
     }
 }
 
-fun ValidationResult.shouldFailBecause(vararg expectedViolations: ExpectedViolation<*>) {
+fun ValidationResult.shouldBeInvalidBecause(vararg expectedViolations: ExpectedViolation<*>) {
     shouldBeInstanceOf<ValidationResult.Failure>()
         .violations.also { violations ->
             assertSoftly {
@@ -95,9 +95,9 @@ fun Result<ValidationResult>.shouldRepresentCompletedValidation(): ValidationRes
         shouldNotThrowAny { getOrThrow() }
     }
 
-fun Result<ValidationResult>.shouldFailBecause(
+fun Result<ValidationResult>.shouldBeInvalidBecause(
     vararg expectedViolations: ExpectedViolation<*>
-) = shouldRepresentCompletedValidation().shouldFailBecause(*expectedViolations)
+) = shouldRepresentCompletedValidation().shouldBeInvalidBecause(*expectedViolations)
 
 fun Result<ValidationResult>.shouldPass() =
     shouldRepresentCompletedValidation().shouldPass()

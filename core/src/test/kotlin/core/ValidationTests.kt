@@ -4,7 +4,8 @@ import io.dwsoft.checkt.core.Check.Parameterless.Companion.delegate
 import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.pass
-import io.dwsoft.checkt.testing.shouldFailBecause
+import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.dwsoft.checkt.testing.shouldPass
 import io.dwsoft.checkt.testing.shouldRepresentCompletedValidation
 import io.dwsoft.checkt.testing.testValidation
 import io.kotest.core.spec.style.FreeSpec
@@ -23,23 +24,23 @@ class ValidationTests : FreeSpec({
         val map: Map<Double, String> = Arb.map(Arb.double(), Arb.string()).next(),
     )
 
-    "Validation in root scope" {
+    "Validation in root block" {
         testValidation(
             of = Dto(),
             with = validation {
                 +failWithMessage { "1" }
-                subject.simpleValue require failWithMessage { "2" }
+                subject.simpleValue require rule { failWithMessage { "2" } }
             }
         ) {
             result.shouldRepresentCompletedValidation()
-                .shouldFailBecause(
+                .shouldBeInvalidBecause(
                     validated.failed(withMessage = "1"),
                     validated.simpleValue.failed(withMessage = "2"),
                 )
         }
     }
 
-    "Validation in nested scope" {
+    "Validation in nested block" {
         testValidation(
             of = Dto(),
             with = validation {
@@ -48,7 +49,7 @@ class ValidationTests : FreeSpec({
             }
         ) {
             result.shouldRepresentCompletedValidation()
-                .shouldFailBecause(
+                .shouldBeInvalidBecause(
                     validated.simpleValue.failed(
                         withMessage = "1",
                         underPath = { -"" / "simpleVal" }
@@ -81,7 +82,7 @@ class ValidationTests : FreeSpec({
             }
         ) {
             result.shouldRepresentCompletedValidation()
-                .shouldFailBecause(*expectedViolations)
+                .shouldBeInvalidBecause(*expectedViolations)
         }
     }
 
@@ -111,7 +112,7 @@ class ValidationTests : FreeSpec({
             }
         ) {
             result.shouldRepresentCompletedValidation()
-                .shouldFailBecause(*expectedViolations)
+                .shouldBeInvalidBecause(*expectedViolations)
         }
     }
 
@@ -133,7 +134,7 @@ class ValidationTests : FreeSpec({
             }
         }
 
-        "Exceptions from nested scopes are caught" {
+        "Exceptions from nested blocks are caught" {
             val spec = validation<Dto> {
                 subject::simpleValue require {
                     subject::length require {
@@ -146,6 +147,20 @@ class ValidationTests : FreeSpec({
                 result.shouldBeFailure(expectedException)
             }
         }
+
+        "Exceptional operations can be recovered into validation blocks" {
+            val expectedMessage = "exception msg"
+            val spec = validation<Dto> {
+                val failingResult = subject::simpleValue require {
+                    subject::length require { throw IllegalStateException(expectedMessage) }
+                }
+                failingResult.recoverFrom<RuntimeException> { +pass }
+            }
+
+            testValidation(Dto(), spec) {
+                result.shouldPass()
+            }
+        }
     }
 
     "Rules are processed conditionally" {
@@ -156,10 +171,10 @@ class ValidationTests : FreeSpec({
         }
 
         testValidation(Dto(simpleValue = failFirst), spec) {
-            result.shouldFailBecause(validated.failed(withMessage = "1"))
+            result.shouldBeInvalidBecause(validated.failed(withMessage = "1"))
         }
         testValidation(Dto(), spec) {
-            result.shouldFailBecause(validated.failed(withMessage = "2"))
+            result.shouldBeInvalidBecause(validated.failed(withMessage = "2"))
         }
     }
 })

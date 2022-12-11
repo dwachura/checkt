@@ -21,9 +21,6 @@ sealed class ValidationResult {
     }
 }
 
-fun Failure.errorMessages(): List<String> =
-    violations.map { it.errorMessage }
-
 fun List<Violation<*, *, *>>.toValidationResult(): ValidationResult =
     if (this.isEmpty()) Success else Failure(this)
 
@@ -33,6 +30,14 @@ fun <C : Check<V, P, C>, V, P : Check.Params<C>>
         null -> emptyList()
         else -> listOf(this)
     }.toValidationResult()
+
+fun Collection<ValidationResult>.fold(): ValidationResult =
+    takeIf { it.isNotEmpty() }
+        ?.reduce(ValidationResult::plus)
+        ?: Success
+
+fun Failure.errorMessages(): List<String> =
+    violations.map { it.errorMessage }
 
 data class ValidationFailure(val violations: List<Violation<*, *, *>>) : RuntimeException()
 
@@ -47,17 +52,48 @@ fun ValidationFailure.errorMessages(): List<String> =
 
 typealias ValidationStatus = Result<ValidationResult>
 
-fun Collection<ValidationStatus>.fold(): ValidationStatus =
-    when {
-        this.isNotEmpty() -> {
-            map {
-                it.fold(
-                    onFailure = { _ -> return it },
-                    onSuccess = { validationResult -> return@map validationResult }
-                )
-            }.reduce(ValidationResult::plus)
-        }
-        else -> Success
-    }.asValidationStatus()
-
 fun ValidationResult.asValidationStatus(): ValidationStatus = Result.success(this)
+
+fun Collection<ValidationStatus>.fold(): ValidationStatus =
+    map {
+        it.fold(
+            onFailure = { _ -> return it },
+            onSuccess = { validationResult -> return@map validationResult }
+        )
+    }.fold().asValidationStatus()
+
+/**
+ * Runs given [block] only when the [status][ValidationStatus] represents valid
+ * validation result, i.e. completed without throwing any exceptions and is
+ * [successful validation][ValidationResult.Success] (containing no [violations][Violation]).
+ */
+suspend fun ValidationStatus.runWhenValid(
+    block: suspend () -> ValidationStatus,
+): ValidationStatus =
+    fold(
+        onSuccess = {
+            when (it) {
+                is Success -> block()
+                is Failure -> it.asValidationStatus()
+            }
+        },
+        onFailure = { return this }
+    )
+
+/**
+ * Runs given [block] when the [status][ValidationStatus] represents failed
+ * completion caused by exception of type [T]. Failure cause is passed to the
+ * callback lambda as a parameter.
+ */
+inline fun <reified T : Throwable> ValidationStatus.runWhenFailureOfType(
+    block: (exception: T) -> ValidationStatus,
+): ValidationStatus =
+    fold(
+        onSuccess = { this },
+        onFailure = { exception ->
+            when (exception) {
+                is T -> block(exception)
+                else -> this
+            }
+        }
+    )

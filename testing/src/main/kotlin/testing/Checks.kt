@@ -2,8 +2,8 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
+import io.dwsoft.checkt.core.ValidationRules
 import io.dwsoft.checkt.core.key
-import io.dwsoft.checkt.core.toValidationRule
 import io.kotest.assertions.asClue
 import io.kotest.matchers.shouldBe
 
@@ -21,9 +21,10 @@ suspend infix fun <T> T.shouldNotPass(check: Check<T, *, *>) =
         }
     }
 
-val fail = failWithMessage { "$value - ${validationPath()}" }
+val <T> ValidationRules<T>.fail
+    get() = failWithMessage { "$value - ${validationPath()}" }
 
-fun failWithMessage(
+fun <T> ValidationRules<T>.failWithMessage(
     errorMessage: LazyErrorMessage<AlwaysFailingCheck, Any?, Check.Params.None<AlwaysFailingCheck>>
 ) = AlwaysFailingCheck.toValidationRule(errorMessage)
 
@@ -32,9 +33,10 @@ object AlwaysFailingCheck :
         implementation = { false }
     )
 
-val pass = AlwaysPassingCheck.toValidationRule { "" }
+val <T> ValidationRules<T>.pass
+    get() = AlwaysPassingCheck.toValidationRule { "" }
 
 object AlwaysPassingCheck :
-    Check.Parameterless<Any, AlwaysPassingCheck> by Check.Parameterless.delegate(
+    Check.Parameterless<Any?, AlwaysPassingCheck> by Check.Parameterless.delegate(
         implementation = { true }
     )

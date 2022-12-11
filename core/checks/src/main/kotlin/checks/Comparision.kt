@@ -3,7 +3,7 @@ package io.dwsoft.checkt.core.checks
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
-import io.dwsoft.checkt.core.toValidationRule
+import io.dwsoft.checkt.core.ValidationRules
 
 class LessThan<V>(private val max: V) :
     Check<Comparable<V>, LessThan.Params<V>, LessThan<V>>
@@ -16,11 +16,11 @@ class LessThan<V>(private val max: V) :
     data class Params<V>(val max: V) : Check.Params<LessThan<V>>()
 }
 
-fun <V : Comparable<V>> beLessThan(
-    max: V,
-    errorMessage: LazyErrorMessage<LessThan<V>, V, LessThan.Params<V>> =
+fun <T : Comparable<T>> ValidationRules<T>.beLessThan(
+    max: T,
+    errorMessage: LazyErrorMessage<LessThan<T>, T, LessThan.Params<T>> =
         { "${validationPath()} must be less than ${validationParams.max}" },
-): ValidationRule<LessThan<V>, V, LessThan.Params<V>> =
+): ValidationRule<LessThan<T>, T, LessThan.Params<T>> =
     LessThan(max).toValidationRule(errorMessage)
 
 class LessThanOrEqual<V>(private val max: V) :
@@ -34,11 +34,11 @@ class LessThanOrEqual<V>(private val max: V) :
     data class Params<V>(val max: V) : Check.Params<LessThanOrEqual<V>>()
 }
 
-fun <V : Comparable<V>> notBeGreaterThan(
-    max: V,
-    errorMessage: LazyErrorMessage<LessThanOrEqual<V>, V, LessThanOrEqual.Params<V>> =
+fun <T : Comparable<T>> ValidationRules<T>.notBeGreaterThan(
+    max: T,
+    errorMessage: LazyErrorMessage<LessThanOrEqual<T>, T, LessThanOrEqual.Params<T>> =
         { "${validationPath()} must not be greater than ${validationParams.max}" },
-): ValidationRule<LessThanOrEqual<V>, V, LessThanOrEqual.Params<V>> =
+): ValidationRule<LessThanOrEqual<T>, T, LessThanOrEqual.Params<T>> =
     LessThanOrEqual(max).toValidationRule(errorMessage)
 
 class GreaterThan<V>(private val min: V) :
@@ -52,11 +52,11 @@ class GreaterThan<V>(private val min: V) :
     data class Params<V>(val min: V) : Check.Params<GreaterThan<V>>()
 }
 
-fun <V : Comparable<V>> beGreaterThan(
-    min: V,
-    errorMessage: LazyErrorMessage<GreaterThan<V>, V, GreaterThan.Params<V>> =
+fun <T : Comparable<T>> ValidationRules<T>.beGreaterThan(
+    min: T,
+    errorMessage: LazyErrorMessage<GreaterThan<T>, T, GreaterThan.Params<T>> =
         { "${validationPath()} must be greater than ${validationParams.min}" },
-): ValidationRule<GreaterThan<V>, V, GreaterThan.Params<V>> =
+): ValidationRule<GreaterThan<T>, T, GreaterThan.Params<T>> =
     GreaterThan(min).toValidationRule(errorMessage)
 
 class GreaterThanOrEqual<V>(private val min: V) :
@@ -70,9 +70,9 @@ class GreaterThanOrEqual<V>(private val min: V) :
     data class Params<V>(val min: V) : Check.Params<GreaterThanOrEqual<V>>()
 }
 
-fun <V : Comparable<V>> notBeLessThan(
-    min: V,
-    errorMessage: LazyErrorMessage<GreaterThanOrEqual<V>, V, GreaterThanOrEqual.Params<V>> =
+fun <T : Comparable<T>> ValidationRules<T>.notBeLessThan(
+    min: T,
+    errorMessage: LazyErrorMessage<GreaterThanOrEqual<T>, T, GreaterThanOrEqual.Params<T>> =
         { "${validationPath()} must not be less than ${validationParams.min}" },
-): ValidationRule<GreaterThanOrEqual<V>, V, GreaterThanOrEqual.Params<V>> =
+): ValidationRule<GreaterThanOrEqual<T>, T, GreaterThanOrEqual.Params<T>> =
     GreaterThanOrEqual(min).toValidationRule(errorMessage)

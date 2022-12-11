@@ -2,11 +2,6 @@ package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Segment
 
-// TODO:
-//  * readme
-//  * conditional rules
-//  * fail-fast mode
-
 /**
  * [Named][ValidationPath] scope that groups [violations][Violation] related
  * in some manner (e.g. by the value for which they appeared).

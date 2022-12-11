@@ -7,8 +7,9 @@ import kotlin.reflect.KProperty0
 /*
  * TODO:
  *  - correct docks after context removal and receivers refactor
+ *  - readme
+ *  - fail-fast mode
  *  - tests and refactoring collection/map validation in regards of Result
- *  - tests of conditional rule processing
  *  - add dsl maker ???
  */
 
@@ -49,8 +50,11 @@ suspend fun <T> T.validate(
  * [exception catching in place][runCatching] and should respond with a
  * [status][ValidationStatus] that represent either exceptional completion
  * or successful one resulting with an actual [validation result][ValidationResult].
+ *
+ * [Validation] is also [validation rules "namespace"][ValidationRules], giving
+ * access to the variety of [validation rules][ValidationRule] DSL functions.
  */
-class Validation<V>(val subject: V, private val scope: ValidationScope) {
+class Validation<V>(val subject: V, private val scope: ValidationScope) : ValidationRules<V> {
     /**
      * Validate given [value][Named] against [validation logic][validationBlock] into
      * a new, [named][Named.name] scope.
@@ -82,20 +86,20 @@ class Validation<V>(val subject: V, private val scope: ValidationScope) {
         subject.require(toBeValidAgainst = this)
 
     /**
-     * Runs given [block] only when the [status][ValidationStatus] represents "valid"
-     * validation result, i.e. completed without throwing any exceptions and is
-     * [successful validation][ValidationResult.Success] (containing no [violations][Violation]).
+     * DSL version of [runWhenValid] making [current context][Validation] available into passed
+     * [validation block][block].
      */
     suspend fun ValidationStatus.whenValid(block: ValidationBlock<V>): ValidationStatus =
-        fold(
-            onSuccess = {
-                when (it) {
-                    ValidationResult.Success -> block()
-                    else -> it.asValidationStatus()
-                }
-            },
-            onFailure = { return this }
-        )
+        runWhenValid { block() }
+
+    /**
+     * DSL version of [runWhenFailureOfType] making [current context][Validation] available into
+     * passed [validation block][block].
+     */
+    suspend inline fun <reified E : Throwable> ValidationStatus.recoverFrom(
+        crossinline block: ValidationBlock1<V, E>
+    ): ValidationStatus =
+        runWhenFailureOfType<E> { block(it) }
 
     internal suspend fun <T> runEnclosed(
         value: T,

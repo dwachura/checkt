@@ -11,6 +11,18 @@ class ValidationRule<C : Check<V, P, C>, in V, P : Check.Params<C>> private cons
     val check: C,
     val errorMessage: LazyErrorMessage<C, out V, P>,
 ) {
+    suspend fun verify(value: V): LazyViolation<C, @UnsafeVariance V, P> =
+        { validationPath ->
+            when (check(value)) {
+                false -> {
+                    val msg = ErrorMessageBuilderContext(value, validationPath, check).errorMessage()
+                    val errorContext = Violation.Context(check, validationPath)
+                    Violation(value, errorContext, msg)
+                }
+                true -> null
+            }
+        }
+
     companion object : ValidationRules<Any?> {
         fun <C : Check<V, P, C>, V, P : Check.Params<C>> create(
             check: C,
@@ -35,6 +47,9 @@ internal constructor(
 
 typealias LazyErrorMessage<C, V, P> =
         ErrorMessageBuilderContext<C, out V, P>.() -> String
+
+typealias LazyViolation<C, V, P> =
+        suspend (ValidationPath) -> Violation<C, V, P>?
 
 /**
  * "Namespace" introduced to provide common and easy access to

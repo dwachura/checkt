@@ -1,70 +1,119 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.ValidationPath.Segment.Name
 import io.dwsoft.checkt.testing.failWithMessage
-import io.dwsoft.checkt.testing.fail
+import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.pass
-import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.collections.shouldContainExactlyInAnyOrder
+import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.nulls.shouldNotBeNull
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
-import io.kotest.matchers.types.shouldBeInstanceOf
 
-class ValidationScopeTests : StringSpec({
+// TODO: refactor to more concise tests ???
+
+class ValidationScopeTests : FreeSpec({
+    val failingRule = ValidationRule.failWithMessage { "$value" }
+
     "Scope of successful validation results with success" {
-        val validationScope = ValidationScope()
+        val validationScope = ValidationScope(ValidationPath(!"seg1"))
 
         with(validationScope) {
-            checkValueAgainstRule(Any(), ValidationRule.pass)
+            validate(Any(), ValidationRule.pass)
         }
 
         validationScope.result shouldBe ValidationResult.Success
     }
 
-    "Result of failed validation contains all violations" {
-        val validationScope = ValidationScope()
-        val failingRule = ValidationRule.failWithMessage { "$value" }
-        val validatedValues = listOf("v1", "v2")
-        val violationContext = Violation.Context(
-            failingRule.check, ValidationPath.unnamed
-        )
-        val expectedViolations = validatedValues.map {
-            Violation(it, violationContext, it)
+    "Single rule validation..." - {
+        "...returns result" {
+            val scope = ValidationScope()
+
+            val result = scope.validate("v1", failingRule)
+
+            result.shouldBeInvalidBecause("v1".failed(withMessage = "v1"))
         }
 
-        with(validationScope) {
-            validatedValues.forEach {
-                checkValueAgainstRule(it, failingRule)
+        "...results are merged into the scope's result" {
+            val scopeResult = ValidationScope().apply {
+                validate("v1", failingRule)
+                validate("v2", failingRule)
+                validate("v3", failingRule)
+            }.result
+
+            scopeResult.shouldBeInvalidBecause(
+                "v1".failed(withMessage = "v1"),
+                "v2".failed(withMessage = "v2"),
+                "v3".failed(withMessage = "v3"),
+            )
+        }
+    }
+
+    "Block validation..." - {
+        "...returns result of all internal operations" {
+            val scope = ValidationScope()
+
+            val result = scope.validate {
+                validate("v1", failingRule)
+                validate("v2", failingRule)
             }
+
+            result.shouldBeInvalidBecause(
+                "v1".failed(withMessage = "v1"),
+                "v2".failed(withMessage = "v2"),
+            )
         }
 
-        validationScope.result.shouldBeInstanceOf<ValidationResult.Failure>()
-            .violations shouldContainExactlyInAnyOrder expectedViolations
-    }
+        "...results are merged into the scope's result" {
+            val scopeResult = ValidationScope().apply {
+                validate { validate("v1", failingRule) }
+                validate { validate("v2", failingRule) }
+                validate { validate("v3", failingRule) }
+            }.result
 
-    "Result of a scope is combined of results of scopes it encloses" {
-        val validationScope = ValidationScope()
-        val enclosedScope1 = validationScope.enclose(Name(!"enclosed1"))
-        val enclosedScope2 = validationScope.enclose(Name(!"enclosed2"))
-        val enclosedResult1 = enclosedScope1.apply {
-            checkValueAgainstRule(Any(), ValidationRule.fail)
-        }.result
-        val enclosedResult2 = enclosedScope2.apply {
-            checkValueAgainstRule(Any(), ValidationRule.fail)
-        }.result
+            scopeResult.shouldBeInvalidBecause(
+                "v1".failed(withMessage = "v1"),
+                "v2".failed(withMessage = "v2"),
+                "v3".failed(withMessage = "v3"),
+            )
+        }
 
-        val enclosingScopeResult = validationScope.result
+        "...can be nested under different paths" {
+            val (rootViolation, rootPath) =
+                ValidationPath().let { "v1".failed(withMessage = "v1", underPath = { it }) to it }
+            val (namedScopeViolation, namedScopePath) =
+                (rootPath + !"scope1").let { "v2".failed(withMessage = "v2", underPath = { it }) to it }
+            val (indexedScopeViolation, indexedScopePath) =
+                (namedScopePath + 0.asIndex()).let { "v3".failed(withMessage = "v3", underPath = { it }) to it }
+            val keyedScopeViolation =
+                "v4".failed(withMessage = "v4", underPath = { indexedScopePath + (!"key").asKey() })
+            var sub1Result: ValidationResult? = null
+            var indexedScopeResult: ValidationResult? = null
+            var keyedScopeResult: ValidationResult? = null
 
-        enclosingScopeResult shouldBe (enclosedResult1 + enclosedResult2)
-    }
+            val rootScopeResult = ValidationScope(rootPath).validate {
+                validate("v1", failingRule)
+                validate(!"scope1") {
+                    validate("v2", failingRule)
+                    validate(0.asIndex()) {
+                        validate("v3", failingRule)
+                        validate((!"key").asKey()) {
+                            validate("v4", failingRule)
+                        }.also { keyedScopeResult = it }
+                    }.also { indexedScopeResult = it }
+                }.also { sub1Result = it }
+            }
 
-    "Nested scopes must have unique names" {
-        val name = Name(!"name")
-        val scope = ValidationScope()
-        scope.enclose(name)
-
-        shouldThrow<IllegalArgumentException> { scope.enclose(name) }
-            .message shouldContain "Scope named ${name.value} is already enclosed"
+            keyedScopeResult.shouldNotBeNull()
+                .shouldBeInvalidBecause(keyedScopeViolation)
+            indexedScopeResult.shouldNotBeNull()
+                .shouldBeInvalidBecause(indexedScopeViolation, keyedScopeViolation)
+            sub1Result.shouldNotBeNull()
+                .shouldBeInvalidBecause(namedScopeViolation, indexedScopeViolation, keyedScopeViolation)
+            rootScopeResult.shouldBeInvalidBecause(
+                rootViolation,
+                namedScopeViolation,
+                indexedScopeViolation,
+                keyedScopeViolation,
+            )
+        }
     }
 })

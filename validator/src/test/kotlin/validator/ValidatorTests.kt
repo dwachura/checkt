@@ -3,6 +3,7 @@ package io.dwsoft.checkt.validator
 import io.dwsoft.checkt.core.validation
 import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
+import io.dwsoft.checkt.testing.path
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.nulls.shouldNotBeNull
@@ -29,11 +30,11 @@ class ValidatorTests : FreeSpec({
         request.asSelfValidated()?.validate()
             .shouldNotBeNull()
             .shouldBeInvalidBecause(
-                request.firstName.failed(underPath = { -"" / "firstName" }, withMessage = "1"),
-                request.lastName.failed(underPath = { -"" / "lastName" }, withMessage = "2"),
-                request.age.failed(underPath = { -"" / "age" }, withMessage = "3"),
-                request.middleName.failed(underPath = { -"" / "middleName" }, withMessage = "4"),
-                request.phoneNumber.failed(underPath = { -"" / "phoneNumber" }, withMessage = "5"),
+                request.firstName.failed(underPath = { -"firstName" }, withMessage = "1"),
+                request.lastName.failed(underPath = { -"lastName" }, withMessage = "2"),
+                request.age.failed(underPath = { -"age" }, withMessage = "3"),
+                request.middleName.failed(underPath = { -"middleName" }, withMessage = "4"),
+                request.phoneNumber.failed(underPath = { -"phoneNumber" }, withMessage = "5"),
             )
     }
 

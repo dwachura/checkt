@@ -4,14 +4,18 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
 import io.dwsoft.checkt.core.ValidationResult
 import io.dwsoft.checkt.core.ValidationSpecification
+import io.dwsoft.checkt.core.Violation
 import io.dwsoft.checkt.core.checkKey
 import io.dwsoft.checkt.core.joinToString
-import io.dwsoft.checkt.core.unnamed
+import io.dwsoft.checkt.core.toValidationResult
 import io.kotest.assertions.asClue
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.withClue
-import io.kotest.matchers.nulls.shouldNotBeNull
+import io.kotest.inspectors.forAny
+import io.kotest.inspectors.forSingle
+import io.kotest.inspectors.runTests
+import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 
@@ -33,34 +37,43 @@ fun ValidationResult.shouldPass() {
     }
 }
 
-fun ValidationResult.shouldBeInvalidBecause(vararg expectedViolations: ExpectedViolation<*>) {
-    shouldBeInstanceOf<ValidationResult.Failure>()
-        .violations.also { violations ->
+fun ValidationResult.shouldBeInvalid() = shouldBeInstanceOf<ValidationResult.Failure>()
+
+fun ValidationResult.shouldBeInvalidBecause(
+    vararg expectedViolations: ExpectedViolation<*>
+): ValidationResult.Failure =
+    shouldBeInvalid()
+        .apply {
             assertSoftly {
                 expectedViolations.forEach { expectedViolation ->
                     val (expectedValue, expectedPath) = expectedViolation
-                    val expectedCheckType = expectedViolation.check.shortIdentifier
+                    val expectedCheck = expectedViolation.check
                     val readableExpectedPath = expectedPath.joinToString()
-                    val maybeViolation = violations.firstOrNull {
-                        it.validationContext.path == expectedPath
-                                && it.validatedValue == expectedValue
-                    }
-                    val violation = withClue(
-                        "Violation of $expectedCheckType by value '$expectedValue' " +
+                    val violationsOnPath = withClue(
+                        "Violation of ${expectedCheck.shortIdentifier} by value '$expectedValue' " +
                                 "on path '$readableExpectedPath' not found"
                     ) {
-                        maybeViolation.shouldNotBeNull()
+                        "Actual violations: ${this.debugString()}".asClue {
+                            violations.filter {
+                                it.validationContext.path == expectedPath
+                                        && it.validationContext.key == expectedCheck
+                                        && it.validatedValue == expectedValue
+                            }.shouldNotBeEmpty()
+                        }
                     }
                     withClue(
-                        "Asserting error message of $expectedCheckType violation on path " +
+                        "Asserting error message of ${expectedCheck.shortIdentifier} violation on path " +
                             "'$readableExpectedPath' (value: '$expectedValue')"
                     ) {
-                        expectedViolation.errorMessageAssertions(violation.errorMessage)
+                        "Actual: ${violationsOnPath.debugString()}".asClue {
+                            violationsOnPath.forAny {
+                                expectedViolation.errorMessageAssertions(it.errorMessage)
+                            }
+                        }
                     }
                 }
             }
         }
-}
 
 data class ExpectedViolation<T : Check<*, *, *>>(
     val value: Any?,
@@ -70,30 +83,35 @@ data class ExpectedViolation<T : Check<*, *, *>>(
 )
 
 inline fun <reified T : Check<*, *, *>> Any?.violated(
-    noinline underPath: ValidationPathBuilder = { ValidationPath.unnamed },
+    noinline underPath: ValidationPathBuilder? = null,
     noinline withMessageThat: (String) -> Unit = {},
 ): ExpectedViolation<T> =
-    ExpectedViolation(this, validationPath(underPath), T::class.checkKey(), withMessageThat)
+    ExpectedViolation(
+        value = this,
+        path = path((underPath ?: { root })),
+        check = T::class.checkKey(),
+        errorMessageAssertions = withMessageThat
+    )
 
 inline fun <reified T : Check<*, *, *>> Any?.violated(
     noinline underPath: ValidationPathBuilder? = null,
     withMessage: String,
 ): ExpectedViolation<T> =
-    underPath?.let {
-        violated(underPath) { it shouldBe withMessage }
-    } ?: violated { it shouldBe withMessage }
+    violated(underPath) { it shouldBe withMessage }
 
 fun Any?.failed(
     underPath: ValidationPathBuilder? = null,
     withMessage: String,
 ): ExpectedViolation<AlwaysFailingCheck> =
-    underPath?.let { violated(underPath, withMessage) }
-        ?: violated(withMessage = withMessage)
+    violated(underPath, withMessage)
 
 fun Result<ValidationResult>.shouldRepresentCompletedValidation(): ValidationResult =
     "Validation failed due to unexpected error".asClue {
         shouldNotThrowAny { getOrThrow() }
     }
+
+fun Result<ValidationResult>.shouldBeInvalid() =
+    shouldRepresentCompletedValidation().shouldBeInvalid()
 
 fun Result<ValidationResult>.shouldBeInvalidBecause(
     vararg expectedViolations: ExpectedViolation<*>
@@ -101,3 +119,21 @@ fun Result<ValidationResult>.shouldBeInvalidBecause(
 
 fun Result<ValidationResult>.shouldPass() =
     shouldRepresentCompletedValidation().shouldPass()
+
+fun Violation<*, *, *>.debugString() =
+    buildString {
+        append("{ ")
+        append("check: '${validationContext.key.shortIdentifier}', ")
+        append("path: '${validationContext.path.joinToString()}', ")
+        append("value: '${validatedValue}', ")
+        append("message: '${errorMessage}', ")
+        append(" }")
+    }
+
+fun ValidationResult.debugString() =
+    when (this) {
+        is ValidationResult.Success -> ValidationResult.Success::class.simpleName
+        is ValidationResult.Failure -> this.violations.joinToString { it.debugString() }
+    }
+
+fun Collection<Violation<*, *, *>>.debugString() = toList().toValidationResult().debugString()

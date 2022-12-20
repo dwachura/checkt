@@ -1,7 +1,7 @@
 package io.dwsoft.checkt.validator
 
 import io.dwsoft.checkt.core.ValidationSpecification
-import io.dwsoft.checkt.core.ValidationStatus
+import io.dwsoft.checkt.core.ValidationResult
 
 interface Validated<V : Validated<V>> {
     val validator: Validator<V>
@@ -11,7 +11,7 @@ fun <T : Validated<*>> T.asSelfValidated(): SelfValidated? = SelfValidated.from(
 
 class SelfValidated private constructor(private val validated: Validated<*>) {
     @Suppress("UNCHECKED_CAST")
-    suspend fun validate(): ValidationStatus =
+    suspend fun validate(): ValidationResult =
         (validated.validator as Validator<Any>).validate(validated)
 
     companion object {

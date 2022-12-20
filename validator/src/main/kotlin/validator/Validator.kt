@@ -2,7 +2,7 @@ package io.dwsoft.checkt.validator
 
 import io.dwsoft.checkt.core.NotBlankString
 import io.dwsoft.checkt.core.ValidationSpecification
-import io.dwsoft.checkt.core.ValidationStatus
+import io.dwsoft.checkt.core.ValidationResult
 import kotlin.reflect.KClass
 
 inline fun <reified T : Any> ValidationSpecification<T>.asValidator(): Validator<T> =
@@ -12,7 +12,7 @@ class Validator<V : Any> private constructor(
     val validationSpecification: ValidationSpecification<V>,
     internal val supportedType: KClass<V>,
 ) {
-    suspend fun validate(value: V, name: NotBlankString? = null): ValidationStatus {
+    suspend fun validate(value: V, name: NotBlankString? = null): ValidationResult {
         val valueStatus = validationSpecification(value, name)
         return valueStatus
     }

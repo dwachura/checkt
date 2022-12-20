@@ -3,7 +3,6 @@ package io.dwsoft.checkt.validator
 import io.dwsoft.checkt.core.validation
 import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
-import io.dwsoft.checkt.testing.path
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.nulls.shouldNotBeNull

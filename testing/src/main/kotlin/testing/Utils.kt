@@ -16,7 +16,7 @@ suspend fun <T> forAll(cases: Gen<T>, verify: suspend T.() -> Unit) {
 }
 
 fun Arb.Companion.notBlankString(
-    minSize: Int = 0,
+    minSize: Int = 1,
     maxSize: Int = 100,
     codepoint: Arb<Codepoint> = Codepoint.ascii()
 ): Arb<NotBlankString> =

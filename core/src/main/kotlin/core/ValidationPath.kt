@@ -44,12 +44,6 @@ sealed interface ValidationPath {
         sealed interface Index : Segment
 
         data class NumericIndex(val rawValue: Int) : Index {
-            init {
-                require(rawValue >= 0) {
-                    "Numeric index cannot be negative"
-                }
-            }
-
             override val value: String = "[$rawValue]"
         }
 

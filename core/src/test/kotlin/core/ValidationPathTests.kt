@@ -1,21 +1,12 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.ValidationPath.Segment.NumericIndex
-import io.dwsoft.checkt.testing.forAll
-import io.kotest.assertions.throwables.shouldNotThrowAny
-import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.data.forAll
 import io.kotest.data.row
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
-import io.kotest.property.Exhaustive
-import io.kotest.property.arbitrary.negativeInt
 import io.kotest.property.arbitrary.next
-import io.kotest.property.arbitrary.positiveInt
 import io.kotest.property.arbitrary.string
-import io.kotest.property.exhaustive.of
 
 class ValidationPathTests : FreeSpec({
     val root = Checkt.Options.ValidationPath.rootSegmentValue
@@ -64,25 +55,3 @@ class ValidationPathTests : FreeSpec({
         }
     }
 })
-
-class SegmentTests : FreeSpec({
-    "${NumericIndex::class.simpleName} creation" {
-        forAll(ints()) {
-            when {
-                this < 0 -> {
-                    shouldThrow<IllegalArgumentException> {
-                        NumericIndex(this)
-                    }.message shouldContain "Numeric index cannot be negative"
-                }
-                else -> shouldNotThrowAny { NumericIndex(this) }
-            }
-        }
-    }
-})
-
-private fun ints(): Exhaustive<Int> =
-    Exhaustive.of(
-        Arb.negativeInt().next(),
-        0,
-        Arb.positiveInt().next()
-    )

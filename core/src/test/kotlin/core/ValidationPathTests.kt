@@ -9,7 +9,7 @@ import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.string
 
 class ValidationPathTests : FreeSpec({
-    val root = Checkt.Options.ValidationPath.rootSegmentValue
+    val root = Checkt.Settings.ValidationPath.rootSegmentDisplayedAs
 
     "Path is joined to string..." - {
         "...using default joiner" {

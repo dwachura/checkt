@@ -6,29 +6,6 @@ import io.dwsoft.checkt.core.ValidationPath.Segment.Key
 import io.dwsoft.checkt.core.ValidationPath.Segment.Name
 import io.dwsoft.checkt.core.ValidationPath.Segment.NumericIndex
 
-/**
- * Non-blank string representation.
- *
- * @constructor throws [IllegalArgumentException] when [value] is
- * blank.
- */
-@JvmInline
-value class NotBlankString(val value: String) {
-    init {
-        require(value.isNotBlank()) { "Value cannot be blank" }
-    }
-
-    override fun toString(): String = value
-}
-
-/**
- * Utility extension over [String] to create [NotBlankString] in
- * a concise manner.
- *
- * Alias of [NotBlankString] constructor.
- */
-operator fun String.not(): NotBlankString = NotBlankString(this)
-
 sealed interface ValidationPath {
     val head: Segment
     val tail: ValidationPath?
@@ -56,19 +33,17 @@ sealed interface ValidationPath {
         private val rootPath: ValidationPath =
             ValidationPathInternal(Root, null)
 
-        operator fun invoke() = rootPath
+        operator fun invoke(name: NotBlankString? = null): ValidationPath =
+            name?.let { rootPath + Name(name) } ?: rootPath
 
         operator fun invoke(head: Segment) =
             rootPath + head
-
-        operator fun invoke(name: NotBlankString) =
-            rootPath + Name(name)
     }
 }
 
 private object Root : Segment {
     override val value: String
-        get() = Checkt.Options.ValidationPath.rootSegmentValue
+        get() = Checkt.Settings.ValidationPath.rootSegmentDisplayedAs
 }
 
 private data class ValidationPathInternal(
@@ -109,3 +84,10 @@ operator fun ValidationPath.iterator(): Iterator<ValidationPath> =
 
         override fun next(): ValidationPath = this@iterator.tail!!
     }
+
+object ValidationPathSettings {
+    var rootSegmentDisplayedAs = "$"
+}
+
+val Checkt.Settings.ValidationPath
+    get() = ValidationPathSettings

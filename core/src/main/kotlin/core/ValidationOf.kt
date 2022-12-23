@@ -5,6 +5,7 @@ import kotlin.reflect.KProperty0
 /*
  * TODO:
  *  - correct docks after scope refactor + tests
+ *  - duplicate naming detection
  *  - readme
  *  - exhaustive tests of error handling in regards to error catching and converting to Result
  *  - tests and refactoring collection/map validation in regards of Result
@@ -23,12 +24,13 @@ typealias ValidationSpecification<T> = suspend T.(NotBlankString?) -> Validation
  * of type [T].
  */
 fun <T> validation(validationBlock: ValidationBlock<T>): ValidationSpecification<T> =
-    { namedAs ->
+    spec@{ namedAs ->
         validateCatching {
-            ValidationOf(this, namedAs)
-                // TODO: refactor
-                .apply { validationBlock().getOrThrow() }
-                .scope.status
+            ValidationScope(ValidationPath(namedAs)).apply {
+                toValidationOf(this@spec)
+                    .validationBlock()
+                    .getOrThrow()
+            }.status
         }
     }
 
@@ -39,6 +41,7 @@ suspend fun <T> T.validate(
     namedAs: NotBlankString? = null,
     validationBlock: ValidationBlock<T>,
 ) = validation(validationBlock)(this, namedAs)
+
 /**
  * Validation logic builder/DSL.
  *
@@ -53,24 +56,15 @@ suspend fun <T> T.validate(
  * [ValidationOf] is also [validation rules "namespace"][ValidationRules], giving
  * access to the variety of [validation rules][ValidationRule] DSL functions.
  */
-class ValidationOf<V> internal constructor(
-    // TODO: refactor
-    val subject: V,
-    internal val scope: ValidationScope,
-) : ValidationRules<V> {
-    constructor(subject: V, named: NotBlankString? = null) : this(
-        subject,
-        ValidationScope(named?.let { ValidationPath(it) } ?: ValidationPath())
-    )
-
+sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
     /**
      * Checks the [currently validated value][subject] against given
      * [validation rule][this].
      */
     suspend operator fun <C : Check<V, P, C>, P : Check.Params<C>>
             ValidationRule<C, V, P>.unaryPlus(): ValidationBlockTermination =
-        validationBlockTerminatorOp {
-            scope.validate(subject, this).status
+        internalsGate.validationOperation {
+            scope.validate(subject, this@unaryPlus).status
         }
 
     /**
@@ -79,10 +73,11 @@ class ValidationOf<V> internal constructor(
     suspend operator fun <T> T.invoke(
         validationBlock: ValidationBlock<T>
     ): ValidationBlockTermination =
-        validationBlockTerminatorOp {
+        internalsGate.validationOperation {
             scope.validate {
-                toValidationOf(this@invoke).validationBlock()
-                    .toValidationScopeBlockTermination()
+                scopeOperation {
+                    toValidationOf(this@invoke).validationBlock().getOrThrow()
+                }
             }.status
         }
 
@@ -93,10 +88,11 @@ class ValidationOf<V> internal constructor(
     suspend infix fun <T> Named<T>.require(
         validationBlock: ValidationBlock<T>
     ): ValidationBlockTermination =
-        validationBlockTerminatorOp {
+        internalsGate.validationOperation {
             scope.validate(name) {
-                toValidationOf(value).validationBlock()
-                    .toValidationScopeBlockTermination()
+                scopeOperation {
+                    toValidationOf(value).validationBlock().getOrThrow()
+                }
             }.status
         }
 
@@ -117,7 +113,7 @@ class ValidationOf<V> internal constructor(
     suspend fun ValidationResult.whenValid(
         validationBlock: ValidationBlock<V>
     ): ValidationBlockTermination =
-        validationBlockTerminatorOp {
+        internalsGate.validationOperation {
             runWhenValid { validationBlock() }.getOrThrow()
         }
 
@@ -128,22 +124,37 @@ class ValidationOf<V> internal constructor(
     suspend inline fun <reified E : Throwable> ValidationResult.recoverFrom(
         crossinline validationBlock: ValidationBlock1<V, E>,
     ): ValidationBlockTermination =
-        validationBlockTerminatorOp {
+        (this@ValidationOf as Internals).validationOperation {
             runWhenFailureOfType<E> { validationBlock(it) }.getOrThrow()
         }
+
+    sealed interface Internals {
+        val scope: ValidationScope
+    }
 }
+
+private val ValidationOf<*>.internalsGate: ValidationOf.Internals
+    get() = this as ValidationOf.Internals
+
+private class ValidationOfInternal<V>(
+    subject: V,
+    override val scope: ValidationScope
+) : ValidationOf<V>(subject), ValidationOf.Internals
 
 /**
  * Utility function for defining functions complaint to the [validation DSL]
  * [ValidationOf], i.e. that can serve as [terminators of a validation blocks]
  * [ValidationBlockTermination].
  */
-suspend fun validationBlockTerminatorOp(
-    block: suspend () -> ValidationStatus
+suspend fun ValidationOf.Internals.validationOperation(
+    block: suspend ValidationOf.Internals.() -> ValidationStatus
 ): ValidationBlockTermination =
-    (validateCatching { block() }).asBlockTermination()
+    ValidationBlockTerminationInternal(
+        validateCatching { block() }
+    )
 
-private fun <T> ValidationScope.toValidationOf(value: T) = ValidationOf(value, this)
+private fun <T> ValidationScope.toValidationOf(value: T): ValidationOf<T> =
+    ValidationOfInternal(value, this)
 
 /**
  * Validates each element of given iterable (being a [subject][ValidationOf.subject]
@@ -155,70 +166,64 @@ private fun <T> ValidationScope.toValidationOf(value: T) = ValidationOf(value, t
 suspend fun <T : Iterable<EL>, EL> ValidationOf<T>.eachElement(
     validationBlock: ValidationBlock1<EL, Int>,
 ): ValidationBlockTermination =
-    validationBlockTerminatorOp {
+    internalsGate.validationOperation {
         subject.mapIndexed { idx, value ->
             scope.validate(idx.asIndex()) {
-                toValidationOf(value).validationBlock(idx)
-                    .toValidationScopeBlockTermination()
-            }.status.asValidationResult()
-        }.fold().getOrThrow()
+                scopeOperation {
+                    toValidationOf(value).validationBlock(idx).getOrThrow()
+                }
+            }.status
+        }.fold()
     }
 
 /**
- * Validates each entry of given map (being a [subject][ValidationOf.subject] of a current
- * context) against provided validation rules.
+ * Validates each entry of given map (being a [subject][ValidationOf.subject] of
+ * a current context) against provided validation rules.
  *
  * Rules can be defined for separately entry's key and value (the former is optional).
- * In both cases "opposite" entry side (value in case of a key, and vice-versa) is passed
- * to the validation lambda as a parameter.
+ * In both cases "opposite" entry side (value in case of a key, and vice-versa) is
+ * passed to the validation lambda as a parameter.
  *
  * Each entry is validated into new scope indexed with entry key transformed by the
- * given [transforming function][displayingKeysAs]. Entry's key and value also have their
- * own scopes created named "key" and "value" respectively.
+ * given [transforming function][displayingKeysAs]. Entry's key and value also have
+ * their own scopes created named "key" and "value" respectively.
  */
 suspend fun <T : Map<K, V>, K, V> ValidationOf<T>.eachEntry(
-    displayingKeysAs: (key: K) -> NotBlankString = { key -> !(key?.toString() ?: "null") },
+    displayingKeysAs: (key: K) -> NotBlankString = { key -> !(key.toString()) },
     keyValidation: ValidationBlock1<K, V>? = null,
     valueValidation: ValidationBlock1<V, K>,
 ): ValidationBlockTermination =
-    validationBlockTerminatorOp {
+    internalsGate.validationOperation {
         subject.map { entry ->
             val key = entry.key
             val value = entry.value
             scope.validate(displayingKeysAs(key).asKey()) {
-                val valueValidationStatus = validate(!"value") {
-                    toValidationOf(value).valueValidation(key)
-                        .toValidationScopeBlockTermination()
-                }.status
-                val keyValidationStatus = keyValidation?.let {
-                    validate(!"key") {
-                        toValidationOf(key).keyValidation(value)
-                            .toValidationScopeBlockTermination()
-                    }
-                }?.status ?: ValidationStatus.Valid
-                (valueValidationStatus + keyValidationStatus)
-                    .asValidationScopeBlockTermination()
-            }.status.asValidationResult()
-        }.fold().getOrThrow()
+                scopeOperation {
+                    val valueValidationStatus = validate(!"value") {
+                        scopeOperation {
+                            toValidationOf(value).valueValidation(key).getOrThrow()
+                        }
+                    }.status
+                    val keyValidationStatus = keyValidation?.let {
+                        validate(!"key") {
+                            scopeOperation {
+                                toValidationOf(key).keyValidation(value).getOrThrow()
+                            }
+                        }
+                    }?.status ?: ValidationStatus.Valid
+                    (valueValidationStatus + keyValidationStatus)
+                }
+            }.status
+        }.fold()
     }
 
-class Named<T>(val value: T, val name: NotBlankString)
+typealias ValidationBlock<T> =
+        suspend ValidationOf<T>.() -> ValidationBlockTermination
 
-fun <T> T.namedAs(name: NotBlankString): Named<T> = Named(this, name)
-
-fun <T> KProperty0<T>.toNamed(): Named<T> = Named(get(), !name)
-
-typealias ValidationBlock<T> = suspend ValidationOf<T>.() -> ValidationBlockTermination
-
-typealias ValidationBlock1<T, T2> = suspend ValidationOf<T>.(T2) -> ValidationBlockTermination
+typealias ValidationBlock1<T, T2> =
+        suspend ValidationOf<T>.(T2) -> ValidationBlockTermination
 
 sealed interface ValidationBlockTermination : ValidationResult
 
 private class ValidationBlockTerminationInternal(result: ValidationResult) :
     ValidationBlockTermination, ValidationResult by result
-
-private fun ValidationResult.asBlockTermination(): ValidationBlockTermination =
-    ValidationBlockTerminationInternal(this)
-
-fun ValidationBlockTermination.toValidationScopeBlockTermination() =
-    result.getOrThrow().asValidationScopeBlockTermination()

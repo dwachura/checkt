@@ -7,18 +7,12 @@ sealed interface ValidationResult {
 suspend fun validateCatching(block: suspend () -> ValidationStatus): ValidationResult =
     ValidationResultInternal(runCatching { block() })
 
-fun ValidationStatus.asValidationResult(): ValidationResult =
-    ValidationResultInternal(Result.success(this))
-
 fun ValidationResult.getOrThrow(): ValidationStatus = result.getOrThrow()
 
-fun Collection<ValidationResult>.fold(): ValidationResult =
-    map {
-        it.result.fold(
-            onFailure = { _ -> return it },
-            onSuccess = { validationResult -> return@map validationResult }
-        )
-    }.fold().asValidationResult()
+suspend fun Collection<ValidationResult>.fold(): ValidationResult =
+    validateCatching {
+        map { it.getOrThrow() }.fold()
+    }
 
 /**
  * Runs given [block] only when the [result][ValidationResult] represents valid
@@ -28,15 +22,12 @@ fun Collection<ValidationResult>.fold(): ValidationResult =
 suspend fun ValidationResult.runWhenValid(
     block: suspend () -> ValidationResult,
 ): ValidationResult =
-    result.fold(
-        onSuccess = {
-            when (it) {
-                is ValidationStatus.Valid -> block()
-                is ValidationStatus.Invalid -> it.asValidationResult()
-            }
-        },
-        onFailure = { return this }
-    )
+    validateCatching {
+        when (val status = getOrThrow()) {
+            is ValidationStatus.Valid -> block().getOrThrow()
+            is ValidationStatus.Invalid -> status
+        }
+    }
 
 /**
  * Runs given [block] when the [result][ValidationResult] represents failed

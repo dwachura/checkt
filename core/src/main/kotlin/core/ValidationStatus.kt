@@ -3,6 +3,9 @@ package io.dwsoft.checkt.core
 import io.dwsoft.checkt.core.ValidationStatus.Invalid
 import io.dwsoft.checkt.core.ValidationStatus.Valid
 
+/**
+ * Representation of validation logic result that may be either [Valid] or [Invalid].
+ */
 sealed class ValidationStatus {
     internal abstract infix operator fun plus(other: ValidationStatus): ValidationStatus
 

@@ -7,9 +7,7 @@ import io.dwsoft.checkt.core.getOrThrow
 import io.kotest.assertions.asClue
 import io.kotest.assertions.throwables.shouldNotThrowAny
 import io.kotest.assertions.throwables.shouldThrow
-import io.kotest.assertions.withClue
 import io.kotest.matchers.shouldBe
-import java.lang.Exception
 
 suspend fun <T> testValidation(
     of: T,
@@ -36,12 +34,12 @@ fun ValidationResult.shouldRepresentCompletedValidation(): ValidationStatus =
         shouldNotThrowAny { getOrThrow() }
     }
 
+fun ValidationResult.shouldBeValid() =
+    shouldRepresentCompletedValidation().shouldBeValid()
+
 fun ValidationResult.shouldBeInvalid() =
     shouldRepresentCompletedValidation().shouldBeInvalid()
 
 fun ValidationResult.shouldBeInvalidBecause(
     vararg expectedViolations: ExpectedViolation<*>
 ) = shouldRepresentCompletedValidation().shouldBeInvalidBecause(*expectedViolations)
-
-fun ValidationResult.shouldPass() =
-    shouldRepresentCompletedValidation().shouldPass()

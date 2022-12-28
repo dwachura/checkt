@@ -1,11 +1,34 @@
 package io.dwsoft.checkt.core
 
+import kotlin.coroutines.cancellation.CancellationException
+import kotlin.reflect.KClass
+
+/**
+ * Wrapper of [ValidationStatus] that represent a result of the *execution* of
+ * a validation logic.
+ *
+ * The difference between [ValidationResult] and [ValidationStatus] is that the
+ * former can be viewed as a "software-aware" version of the latter - besides
+ * holding info about validation logic result/status, [ValidationResult] instances,
+ * can represent [exceptional execution of the validation operations][Result].
+ *
+ * Instances of this class can be obtained via [dedicated factory function]
+ * [validateCatching].
+ */
 sealed interface ValidationResult {
     val result: Result<ValidationStatus>
 }
 
-suspend fun validateCatching(block: suspend () -> ValidationStatus): ValidationResult =
-    ValidationResultInternal(runCatching { block() })
+/**
+ * Executes given [validation block][block], catching all eventual "standard"
+ * exceptions thrown during it and returning [ValidationResult].
+ */
+suspend fun validateCatching(
+    block: suspend () -> ValidationStatus
+): ValidationResult =
+    ValidationResultInternal(
+        runCatching { block() }
+    ).throwUnrecoverableError()
 
 fun ValidationResult.getOrThrow(): ValidationStatus = result.getOrThrow()
 
@@ -51,3 +74,32 @@ inline fun <reified T : Throwable> ValidationResult.runWhenFailureOfType(
 private value class ValidationResultInternal(
     override val result: Result<ValidationStatus>
 ) : ValidationResult
+
+object ValidationResultSettings {
+    /**
+     * User-defined error types that should not be caught by [ValidationResult].
+     */
+    var customUnrecoverableErrorTypes: List<KClass<out Throwable>> = emptyList()
+
+    /**
+     * Default error types that should not be caught by [ValidationResult].
+     */
+    val baseUnrecoverableErrorTypes: List<KClass<out Throwable>> =
+        listOf(Error::class, CancellationException::class)
+
+    fun isUnrecoverable(throwable: Throwable): Boolean =
+        throwable::class in unrecoverableErrorTypes
+
+    private val unrecoverableErrorTypes
+        get() = (baseUnrecoverableErrorTypes + customUnrecoverableErrorTypes)
+}
+
+val Checkt.Settings.ValidationResult
+    get() = ValidationResultSettings
+
+private fun ValidationResult.throwUnrecoverableError(): ValidationResult =
+    apply {
+        result.onFailure {
+            if (ValidationResultSettings.isUnrecoverable(it)) throw it
+        }
+    }

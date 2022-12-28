@@ -1,14 +1,13 @@
 package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.Check.Parameterless.Companion.delegate
-import io.dwsoft.checkt.testing.fail
 import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.pass
 import io.dwsoft.checkt.testing.shouldBeInvalid
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldFailWith
-import io.dwsoft.checkt.testing.shouldPass
 import io.dwsoft.checkt.testing.shouldRepresentCompletedValidation
 import io.dwsoft.checkt.testing.testValidation
 import io.kotest.core.spec.style.FreeSpec
@@ -187,7 +186,7 @@ class ValidationTests : FreeSpec({
             }
 
             testValidation(Dto(), spec) {
-                result.shouldPass()
+                result.shouldBeValid()
             }
         }
     }
@@ -357,7 +356,7 @@ class ValidationOfTests : FreeSpec({
             }
 
             testValidation(Dto(), spec) {
-                result.shouldPass()
+                result.shouldBeValid()
             }
         }
     }

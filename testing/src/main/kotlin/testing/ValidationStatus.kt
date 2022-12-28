@@ -15,7 +15,7 @@ import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 
-fun ValidationStatus.shouldPass() {
+fun ValidationStatus.shouldBeValid() {
     "Validation should be successful".asClue {
         shouldBeInstanceOf<ValidationStatus.Valid>()
     }

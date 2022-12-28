@@ -37,8 +37,8 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()){
     suspend fun <C : Check<V, P, C>, V, P : Check.Params<C>> validate(
         value: V,
         rule: ValidationRule<C, V, P>,
-    ): ValidationScopeBlockTermination =
-        scopeOperation {
+    ): ValidationScopeBlockReturnable =
+        scopeBlock {
             rule.verify(value)(validationPath)
                 .toValidationStatus()
                 .also { merge(it) }
@@ -54,8 +54,8 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()){
      * execution.
      */
     suspend fun validate(
-        block: suspend ValidationScope.() -> ValidationScopeBlockTermination
-    ): ValidationScopeBlockTermination =
+        block: suspend ValidationScope.() -> ValidationScopeBlockReturnable
+    ): ValidationScopeBlockReturnable =
         applyBlockIntoNewScope(validationPath, block)
 
     /**
@@ -66,7 +66,7 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()){
      */
     suspend fun validate(
         name: NotBlankString,
-        block: suspend ValidationScope.() -> ValidationScopeBlockTermination,
+        block: suspend ValidationScope.() -> ValidationScopeBlockReturnable,
     ) = applyBlockIntoNewScope(validationPath + name, block)
 
     /**
@@ -76,16 +76,16 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()){
      */
     suspend fun validate(
         index: Index,
-        block: suspend ValidationScope.() -> ValidationScopeBlockTermination,
+        block: suspend ValidationScope.() -> ValidationScopeBlockReturnable,
     ) = applyBlockIntoNewScope(validationPath + index, block)
 
     private suspend fun applyBlockIntoNewScope(
         validationPath: ValidationPath,
-        validation: suspend ValidationScope.() -> ValidationScopeBlockTermination,
-    ): ValidationScopeBlockTermination =
-        scopeOperation {
+        block: suspend ValidationScope.() -> ValidationScopeBlockReturnable,
+    ): ValidationScopeBlockReturnable =
+        scopeBlock {
             ValidationScope(validationPath)
-                .apply { validation() }
+                .apply { block() }
                 .status
                 .also { merge(it) }
         }
@@ -97,20 +97,20 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()){
  * to those functions.
  *
  * It helps to prevent forgetting to call any of them into validation blocks -
- * language itself enforces callers to return [ValidationScopeBlockTermination]
+ * language itself enforces callers to return [ValidationScopeBlockReturnable]
  * instance from validation block, which can be only retrieved from validation
  * scope DSL functions.
  */
-sealed interface ValidationScopeBlockTermination {
+sealed interface ValidationScopeBlockReturnable {
     val status: ValidationStatus
 }
 
-suspend fun ValidationScope.scopeOperation(
+suspend fun ValidationScope.scopeBlock(
     block: suspend ValidationScope.() -> ValidationStatus
-): ValidationScopeBlockTermination =
-    ValidationScopeBlockTerminationInternal(block())
+): ValidationScopeBlockReturnable =
+    ValidationScopeBlockReturnableInternal(block())
 
 @JvmInline
-private value class ValidationScopeBlockTerminationInternal(
+private value class ValidationScopeBlockReturnableInternal(
     override val status: ValidationStatus
-) : ValidationScopeBlockTermination
+) : ValidationScopeBlockReturnable

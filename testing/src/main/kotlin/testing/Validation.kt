@@ -37,9 +37,13 @@ fun ValidationResult.shouldRepresentCompletedValidation(): ValidationStatus =
 fun ValidationResult.shouldBeValid() =
     shouldRepresentCompletedValidation().shouldBeValid()
 
-fun ValidationResult.shouldBeInvalid() =
-    shouldRepresentCompletedValidation().shouldBeInvalid()
+fun ValidationResult.shouldBeInvalid(withViolationsCountEqualTo: Int? = null) =
+    shouldRepresentCompletedValidation().shouldBeInvalid(withViolationsCountEqualTo)
 
 fun ValidationResult.shouldBeInvalidBecause(
     vararg expectedViolations: ExpectedViolation<*>
 ) = shouldRepresentCompletedValidation().shouldBeInvalidBecause(*expectedViolations)
+
+fun ValidationResult.shouldBeInvalidExactlyBecause(
+    vararg expectedViolations: ExpectedViolation<*>
+) = shouldRepresentCompletedValidation().shouldBeInvalidExactlyBecause(*expectedViolations)

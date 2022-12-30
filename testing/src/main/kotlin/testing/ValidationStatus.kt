@@ -2,6 +2,7 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
+import io.dwsoft.checkt.core.ValidationResult
 import io.dwsoft.checkt.core.ValidationStatus
 import io.dwsoft.checkt.core.Violation
 import io.dwsoft.checkt.core.checkKey
@@ -11,6 +12,7 @@ import io.kotest.assertions.asClue
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.withClue
 import io.kotest.inspectors.forAny
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -21,12 +23,30 @@ fun ValidationStatus.shouldBeValid() {
     }
 }
 
-fun ValidationStatus.shouldBeInvalid() = shouldBeInstanceOf<ValidationStatus.Invalid>()
+fun ValidationStatus.shouldBeInvalid(
+    withViolationsCountEqualTo: Int? = null
+): ValidationStatus.Invalid =
+    shouldBeInstanceOf<ValidationStatus.Invalid>()
+        .apply {
+            withViolationsCountEqualTo?.let {
+                "Validation should be invalid because of $withViolationsCountEqualTo violation(s)"
+                    .asClue { violations shouldHaveSize withViolationsCountEqualTo }
+            }
+        }
 
 fun ValidationStatus.shouldBeInvalidBecause(
-    vararg expectedViolations: ExpectedViolation<*>
+    vararg expectedViolations: ExpectedViolation<*>,
+) = shouldBeInvalidBecause(expectedViolations.toList(), false)
+
+fun ValidationStatus.shouldBeInvalidExactlyBecause(
+    vararg expectedViolations: ExpectedViolation<*>,
+) = shouldBeInvalidBecause(expectedViolations.toList(), true)
+
+private fun ValidationStatus.shouldBeInvalidBecause(
+    expectedViolations: List<ExpectedViolation<*>>,
+    checkViolationsCount: Boolean,
 ): ValidationStatus.Invalid =
-    shouldBeInvalid()
+    shouldBeInvalid(if (checkViolationsCount) expectedViolations.size else null)
         .apply {
             assertSoftly {
                 expectedViolations.forEach { expectedViolation ->
@@ -72,7 +92,7 @@ inline fun <reified T : Check<*, *, *>> Any?.violated(
 ): ExpectedViolation<T> =
     ExpectedViolation(
         value = this,
-        path = path((underPath ?: { root })),
+        path = validationPath((underPath ?: { root })),
         check = T::class.checkKey(),
         errorMessageAssertions = withMessageThat
     )

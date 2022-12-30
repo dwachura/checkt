@@ -1,24 +1,24 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.ValidationPath.Segment
-import io.dwsoft.checkt.core.ValidationPath.Segment.Index
-import io.dwsoft.checkt.core.ValidationPath.Segment.Key
-import io.dwsoft.checkt.core.ValidationPath.Segment.Name
-import io.dwsoft.checkt.core.ValidationPath.Segment.NumericIndex
+import io.dwsoft.checkt.core.ValidationPath.Element
+import io.dwsoft.checkt.core.ValidationPath.Element.Index
+import io.dwsoft.checkt.core.ValidationPath.Element.Key
+import io.dwsoft.checkt.core.ValidationPath.Element.Segment
+import io.dwsoft.checkt.core.ValidationPath.Element.NumericIndex
 
 sealed interface ValidationPath {
-    val head: Segment
+    val head: Element
     val tail: ValidationPath?
 
-    sealed interface Segment {
+    sealed interface Element {
         val value: String
 
-        data class Name(val rawValue: NotBlankString) : Segment {
+        data class Segment(val rawValue: NotBlankString) : Element {
             override val value: String
                 get() = rawValue.value
         }
 
-        sealed interface Index : Segment
+        sealed interface Index : Element
 
         data class NumericIndex(val rawValue: Int) : Index {
             override val value: String = "[$rawValue]"
@@ -34,27 +34,29 @@ sealed interface ValidationPath {
             ValidationPathInternal(Root, null)
 
         operator fun invoke(name: NotBlankString? = null): ValidationPath =
-            name?.let { rootPath + Name(name) } ?: rootPath
+            name?.let { rootPath + Segment(name) } ?: rootPath
 
-        operator fun invoke(head: Segment) =
+        operator fun invoke(head: Element) =
             rootPath + head
     }
 }
 
-private object Root : Segment {
+private object Root : Element {
     override val value: String
-        get() = Checkt.Settings.ValidationPath.rootSegmentDisplayedAs
+        get() = Checkt.Settings.ValidationPath.rootDisplayedAs
 }
 
 private data class ValidationPathInternal(
-    override val head: Segment,
+    override val head: Element,
     override val tail: ValidationPath?
 ) : ValidationPath
 
-operator fun ValidationPath.plus(name: Segment): ValidationPath =
-    ValidationPathInternal(name, this)
+operator fun ValidationPath.plus(element: Element): ValidationPath =
+    ValidationPathInternal(element, this)
 
-operator fun ValidationPath.plus(name: NotBlankString) = this + Name(name)
+operator fun ValidationPath.plus(name: NotBlankString) = this + Segment(name)
+
+fun NotBlankString.asSegment(): Segment = Segment(this)
 
 fun Int.asIndex(): NumericIndex = NumericIndex(this)
 
@@ -86,7 +88,7 @@ operator fun ValidationPath.iterator(): Iterator<ValidationPath> =
     }
 
 object ValidationPathSettings {
-    var rootSegmentDisplayedAs = "$"
+    var rootDisplayedAs = "$"
 }
 
 val Checkt.Settings.ValidationPath

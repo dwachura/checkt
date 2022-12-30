@@ -2,8 +2,8 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.NotBlankString
 import io.dwsoft.checkt.core.ValidationPath
-import io.dwsoft.checkt.core.ValidationPath.Segment.Key
-import io.dwsoft.checkt.core.ValidationPath.Segment.NumericIndex
+import io.dwsoft.checkt.core.ValidationPath.Element.Key
+import io.dwsoft.checkt.core.ValidationPath.Element.NumericIndex
 import io.dwsoft.checkt.core.joinToString
 import io.dwsoft.checkt.core.not
 import io.dwsoft.checkt.core.plus
@@ -34,7 +34,7 @@ class ValidationPathBuilderTests : FreeSpec({
             row({ -"seg1" / "seg2"["key1"]["key2"] }, path(seg1) + seg2 + key1 + key2),
             row({ -"seg1" / "seg2"[1.idx]["key1"][2.idx]["key2"] }, path(seg1) + seg2 + idx1 + key1 + idx2 + key2),
         ) { pathBuilder: ValidationPathBuilder, expectedPath: ValidationPath ->
-            val actualPath = path(pathBuilder)
+            val actualPath = validationPath(pathBuilder)
             val readableExpectedPath = expectedPath.joinToString()
             "...should build '$readableExpectedPath' path" {
                 val readablePathBuilt = actualPath.joinToString()

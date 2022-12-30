@@ -85,7 +85,11 @@ object ValidationResultSettings {
      * Default error types that should not be caught by [ValidationResult].
      */
     val baseUnrecoverableErrorTypes: List<KClass<out Throwable>> =
-        listOf(Error::class, CancellationException::class)
+        listOf(
+            Error::class,
+            CancellationException::class,
+            ValidationScope.NamingUniquenessException::class,
+        )
 
     fun isUnrecoverable(throwable: Throwable): Boolean =
         throwable::class in unrecoverableErrorTypes

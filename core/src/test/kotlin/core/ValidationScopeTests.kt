@@ -1,17 +1,18 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.ValidationPath.Segment.Key
-import io.dwsoft.checkt.core.ValidationPath.Segment.Name
-import io.dwsoft.checkt.core.ValidationPath.Segment.NumericIndex
+import io.dwsoft.checkt.core.ValidationPath.Element.Index
+import io.dwsoft.checkt.core.ValidationPath.Element.Segment
+import io.dwsoft.checkt.core.ValidationScope.NamingUniquenessException
 import io.dwsoft.checkt.core.ValidationStatus.Valid
-import io.dwsoft.checkt.testing.ValidationPathBuilder
 import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.notBlankString
 import io.dwsoft.checkt.testing.pass
+import io.dwsoft.checkt.testing.shouldBeInvalid
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
 import io.kotest.assertions.fail
+import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Arb
@@ -27,7 +28,7 @@ class ValidationScopeTests : FreeSpec({
         val validationScope = ValidationScope(ValidationPath(!"seg1"))
 
         with(validationScope) {
-            validate(Any(), ValidationRule.pass)
+            verifyValue(Any(), ValidationRule.pass)
         }
 
         validationScope.status shouldBe Valid
@@ -37,16 +38,16 @@ class ValidationScopeTests : FreeSpec({
         "...returns validation status" {
             val scope = ValidationScope()
 
-            val status = scope.validate("v1", failingRule).status
+            val status = scope.verifyValue("v1", failingRule).status
 
             status.shouldBeInvalidBecause("v1".failed(withMessage = "v1"))
         }
 
         "...statuses are merged into the scope's status" {
             val status = ValidationScope().apply {
-                validate("v1", failingRule)
-                validate("v2", failingRule)
-                validate("v3", failingRule)
+                verifyValue("v1", failingRule)
+                verifyValue("v2", failingRule)
+                verifyValue("v3", failingRule)
             }.status
 
             status.shouldBeInvalidBecause(
@@ -60,8 +61,8 @@ class ValidationScopeTests : FreeSpec({
     "Block validation..." - {
         "...returns status of all internal operations" {
             val status = ValidationScope().validate {
-                validate("v1", failingRule)
-                validate("v2", failingRule)
+                verifyValue("v1", failingRule)
+                verifyValue("v2", failingRule)
             }.status
 
             status.shouldBeInvalidBecause(
@@ -72,9 +73,9 @@ class ValidationScopeTests : FreeSpec({
 
         "...statuses are merged into the scope's status" {
             val status = ValidationScope().apply {
-                validate { validate("v1", failingRule) }
-                validate { validate("v2", failingRule) }
-                validate { validate("v3", failingRule) }
+                validate { verifyValue("v1", failingRule) }
+                validate { verifyValue("v2", failingRule) }
+                validate { verifyValue("v3", failingRule) }
             }.status
 
             status.shouldBeInvalidBecause(
@@ -84,31 +85,42 @@ class ValidationScopeTests : FreeSpec({
             )
         }
 
-        "...can be nested under different paths" {
-            suspend fun ValidationScope.failOn(value: Any) = validate(value, failingRule)
+        "...nesting..." - {
+            "...works" {
+                forAll(nestingCases()) {
+                    val expectedViolation =
+                        "v".failed(withMessage = "v", underPath = { root + this@forAll })
+                    val scope = ValidationScope()
 
-            forAll(nestingCases()) {
-                val expectedViolation =
-                    "v".failed(withMessage = "v", underPath = { root + this@forAll })
+                    val nestedStatus = when (this) {
+                        is Segment, is Index -> {
+                            scope.validate(this) { verifyValue("v", failingRule) }
+                        }
+                        else -> fail("Unexpected element")
+                    }.status
+
+                    nestedStatus.shouldBeInvalidBecause(expectedViolation)
+                    scope.status.shouldBeInvalidBecause(expectedViolation)
+                }
+            }
+
+            "...must not allow of duplicate paths" {
+                val segment = Segment(!"seg1")
                 val scope = ValidationScope()
+                scope.validate(segment) { verifyValue(Any(), failingRule) }
+                    .status.shouldBeInvalid()
 
-                val nestedStatus = when (this) {
-                    is Name -> scope.validate(rawValue) { failOn("v") }
-                    is NumericIndex -> scope.validate(this) { failOn("v") }
-                    is Key -> scope.validate(this) { failOn("v") }
-                    else -> fail("Unexpected segment")
-                }.status
-
-                nestedStatus.shouldBeInvalidBecause(expectedViolation)
-                scope.status.shouldBeInvalidBecause(expectedViolation)
+                shouldThrow<NamingUniquenessException> {
+                    scope.validate(segment) { verifyValue(Any(), failingRule) }
+                }
             }
         }
     }
 })
 
-private fun nestingCases(): Exhaustive<ValidationPath.Segment> =
+private fun nestingCases(): Exhaustive<ValidationPath.Element> =
     Exhaustive.of(
-        Name(Arb.notBlankString(maxSize = 10).next()),
+        Segment(Arb.notBlankString(maxSize = 10).next()),
         Arb.positiveInt(max = 10).next().asIndex(),
         Arb.notBlankString(maxSize = 10).next().asKey(),
     )

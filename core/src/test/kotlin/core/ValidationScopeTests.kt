@@ -38,7 +38,7 @@ class ValidationScopeTests : FreeSpec({
         "...returns validation status" {
             val scope = ValidationScope()
 
-            val status = scope.verifyValue("v1", failingRule).status
+            val status = scope.verifyValue("v1", failingRule)
 
             status.shouldBeInvalidBecause("v1".failed(withMessage = "v1"))
         }
@@ -63,7 +63,7 @@ class ValidationScopeTests : FreeSpec({
             val status = ValidationScope().validate {
                 verifyValue("v1", failingRule)
                 verifyValue("v2", failingRule)
-            }.status
+            }
 
             status.shouldBeInvalidBecause(
                 "v1".failed(withMessage = "v1"),
@@ -97,7 +97,7 @@ class ValidationScopeTests : FreeSpec({
                             scope.validate(this) { verifyValue("v", failingRule) }
                         }
                         else -> fail("Unexpected element")
-                    }.status
+                    }
 
                     nestedStatus.shouldBeInvalidBecause(expectedViolation)
                     scope.status.shouldBeInvalidBecause(expectedViolation)
@@ -108,7 +108,7 @@ class ValidationScopeTests : FreeSpec({
                 val segment = Segment(!"seg1")
                 val scope = ValidationScope()
                 scope.validate(segment) { verifyValue(Any(), failingRule) }
-                    .status.shouldBeInvalid()
+                    .shouldBeInvalid()
 
                 shouldThrow<NamingUniquenessException> {
                     scope.validate(segment) { verifyValue(Any(), failingRule) }

@@ -37,12 +37,10 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
     suspend fun <C : Check<V, P, C>, V, P : Check.Params<C>> verifyValue(
         value: V,
         rule: ValidationRule<C, V, P>,
-    ): ValidationScopeBlockReturnable =
-        scopeBlock {
-            rule.verify(value)(validationPath)
-                .toValidationStatus()
-                .also { merge(it) }
-        }
+    ): ValidationStatus =
+        rule.verify(value)(validationPath)
+            .toValidationStatus()
+            .also { merge(it) }
 
     private fun merge(status: ValidationStatus) {
         if (status is ValidationStatus.Invalid) enclosedFailures += status
@@ -63,8 +61,8 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
      */
     suspend fun validate(
         newName: ValidationPath.Element? = null,
-        block: suspend ValidationScope.() -> ValidationScopeBlockReturnable
-    ): ValidationScopeBlockReturnable =
+        block: suspend ValidationScope.() -> Unit
+    ): ValidationStatus =
         when (newName) {
             null -> applyBlockIntoNewScope(validationPath, block)
             else -> {
@@ -79,41 +77,15 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
 
     private suspend fun applyBlockIntoNewScope(
         validationPath: ValidationPath,
-        block: suspend ValidationScope.() -> ValidationScopeBlockReturnable,
-    ): ValidationScopeBlockReturnable =
-        scopeBlock {
-            ValidationScope(validationPath)
-                .apply { block() }
-                .status
-                .also { merge(it) }
-        }
+        block: suspend ValidationScope.() -> Unit,
+    ): ValidationStatus =
+        ValidationScope(validationPath)
+            .apply { block() }
+            .status
+            .also { merge(it) }
 
     class NamingUniquenessException(validationPath: ValidationPath) :
         RuntimeException(
             "Scope named '${validationPath.joinToString()}' was already opened"
         )
 }
-
-/**
- * [ValidationStatus] wrapper returned by [ValidationScope] DSL functions
- * (e.g. [validate]) and defined as a return value of a validation blocks passed
- * to those functions.
- *
- * It helps to prevent forgetting to call any of them into validation blocks -
- * language itself enforces callers to return [ValidationScopeBlockReturnable]
- * instance from validation block, which can be only retrieved from validation
- * scope DSL functions.
- */
-sealed interface ValidationScopeBlockReturnable {
-    val status: ValidationStatus
-}
-
-suspend fun ValidationScope.scopeBlock(
-    block: suspend ValidationScope.() -> ValidationStatus
-): ValidationScopeBlockReturnable =
-    ValidationScopeBlockReturnableInternal(block())
-
-@JvmInline
-private value class ValidationScopeBlockReturnableInternal(
-    override val status: ValidationStatus
-) : ValidationScopeBlockReturnable

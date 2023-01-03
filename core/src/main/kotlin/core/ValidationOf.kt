@@ -69,7 +69,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
     suspend operator fun <C : Check<V, P, C>, P : Check.Params<C>>
             ValidationRule<C, V, P>.unaryPlus(): ValidationBlockReturnable =
         internalsGate.validationBlock {
-            scope.verifyValue(subject, this@unaryPlus).status
+            scope.verifyValue(subject, this@unaryPlus)
         }
 
     /**
@@ -85,7 +85,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
                 returning(
                     toValidationOf(this@invoke).block()
                 )
-            }.status
+            }
         }
 
     /**
@@ -104,7 +104,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
                 returning(
                     toValidationOf(value).block()
                 )
-            }.status
+            }
         }
 
     /**
@@ -161,7 +161,7 @@ suspend fun <T : Iterable<EL>, EL> ValidationOf<T>.eachElement(
                 returning(
                     toValidationOf(value).block(idx)
                 )
-            }.status
+            }
         }.fold()
     }
 
@@ -192,18 +192,18 @@ suspend fun <T : Map<K, V>, K, V> ValidationOf<T>.eachEntry(
                         returning(
                             toValidationOf(value).valueValidation(key)
                         )
-                    }.status
+                    }
                     val keyValidationStatus = keyValidation?.let {
                         validate((!"key").asSegment()) {
                             returning(
                                 toValidationOf(key).keyValidation(value)
                             )
                         }
-                    }?.status ?: ValidationStatus.Valid
+                    } ?: ValidationStatus.Valid
                     valueValidationStatus + keyValidationStatus
                 }
                 returning(entryValidationResult)
-            }.status
+            }
         }.fold()
     }
 
@@ -227,10 +227,10 @@ val <T> ValidationOf<T>.the: T
     get() = subject
 
 typealias ValidationBlock<T> =
-        suspend ValidationOf<T>.() -> ValidationBlockReturnable
+        suspend ValidationOf<T>.() -> ValidationResult
 
 typealias ValidationBlock1<T, T2> =
-        suspend ValidationOf<T>.(T2) -> ValidationBlockReturnable
+        suspend ValidationOf<T>.(T2) -> ValidationResult
 
 sealed interface ValidationBlockReturnable : ValidationResult
 
@@ -251,5 +251,4 @@ private class ValidationBlockReturnableInternal(
 
 private suspend fun ValidationScope.returning(
     result: ValidationResult
-): ValidationScopeBlockReturnable =
-    scopeBlock { result.getOrThrow() }
+): ValidationStatus = result.getOrThrow()

@@ -4,10 +4,10 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.Check.Params.None
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationBlock
-import io.dwsoft.checkt.core.ValidationBlockReturnable
 import io.dwsoft.checkt.core.ValidationOf
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
+import io.dwsoft.checkt.core.ValidationStatus
 
 class NonNull<V> : Check.Parameterless<V?, NonNull<V?>> by Check.Parameterless.delegate(
     implementation = { value -> value != null }
@@ -22,7 +22,7 @@ fun <T> ValidationRules<T?>.notBeNull(
 suspend fun <T : Any> ValidationOf<T?>.subjectNotNullAnd(
     nonNullErrorMessage: LazyErrorMessage<NonNull<T?>, T?, None<NonNull<T?>>>? = null,
     nonNullValidation: ValidationBlock<T>,
-): ValidationBlockReturnable {
+): ValidationStatus {
     val nonNullRule = nonNullErrorMessage?.let { notBeNull(it) } ?: notBeNull()
     return (+nonNullRule).whenValid {
         (subject!!) { nonNullValidation() }

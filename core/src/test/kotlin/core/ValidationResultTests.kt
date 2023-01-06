@@ -1,11 +1,15 @@
 package io.dwsoft.checkt.core
 
+import io.dwsoft.checkt.core.ValidationStatus.Valid
 import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldFailWith
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.throwable.shouldHaveMessage
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.mockk
 
 class ValidationResultTests : FreeSpec({
     "Recoverable exceptions are caught" {
@@ -28,13 +32,32 @@ class ValidationResultTests : FreeSpec({
         } shouldBe expectedException
     }
 
-    "Exceptional result can be recovered" {
-        val failure = validateCatching { throw RuntimeException() }
+    "Error recovery" - {
+        "Exceptional result can be recovered" {
+            val failure = validateCatching { throw RuntimeException() }
 
-        val result = failure.runWhenFailureOfType<RuntimeException> {
-            validateCatching { ValidationStatus.Valid }
+            val result = failure.catch(
+                FallbackOf<RuntimeException> { Valid }
+            )
+
+            result.shouldBeValid()
         }
 
-        result.shouldBeValid()
+        "The first fallback supporting exception is called" {
+            class SpecificException : RuntimeException()
+            val exception = SpecificException()
+            val failure = validateCatching { throw exception }
+            val fallbackMock = FallbackOf<RuntimeException>(
+                mockk { coEvery { this@mockk(any()) } returns Valid }
+            )
+
+            val result = failure.catch(
+                fallbackMock,
+                mockk<FallbackOf<SpecificException>>(),
+            )
+
+            result.shouldBeValid()
+            coVerify(exactly = 1) { fallbackMock.func(exception) }
+        }
     }
 })

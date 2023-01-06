@@ -14,7 +14,13 @@ sealed class ValidationStatus {
     }
 
     data class Invalid(val violations: List<Violation<*, *, *>>) : ValidationStatus() {
-        constructor(vararg violations: Violation<*, *, *>) : this(violations.asList())
+        constructor(
+            violation: Violation<*, *, *>,
+            vararg violations: Violation<*, *, *>
+        ) : this(buildList {
+            add(violation)
+            addAll(violations)
+        })
 
         override fun plus(other: ValidationStatus): Invalid =
             when (other) {

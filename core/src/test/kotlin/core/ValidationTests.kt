@@ -7,9 +7,9 @@ import io.dwsoft.checkt.testing.pass
 import io.dwsoft.checkt.testing.shouldBeInvalid
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
 import io.dwsoft.checkt.testing.shouldBeInvalidExactlyBecause
-import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldFailWith
 import io.dwsoft.checkt.testing.testValidation
+import io.dwsoft.checkt.testing.validationPath
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.property.Arb
@@ -81,16 +81,11 @@ class ValidationTests : FreeSpec({
             map = Arb.map(Arb.double(), Arb.string(), minSize = 2, maxSize = 3).next()
         )
         val expectedViolations = toValidate.map.flatMap { (key, value) ->
-            val expectedMessage = "$key:$value"
+            val msg = "$key:$value"
+            val pathPrefix = validationPath { -"map"["$key"] }
             listOf(
-                key.failed(
-                    withMessage = expectedMessage,
-                    underPath = { -"map"["$key"] / "key" }
-                ),
-                value.failed(
-                    withMessage = expectedMessage,
-                    underPath = { -"map"["$key"] / "value" }
-                )
+                key.failed(withMessage = msg, underPath = { pathPrefix / "key" }),
+                value.failed(withMessage = msg, underPath = { pathPrefix / "value" })
             )
         }.toTypedArray()
 
@@ -109,6 +104,46 @@ class ValidationTests : FreeSpec({
         }
     }
 
+    "Naming duplication errors are not caught" {
+        shouldThrow<ValidationScope.NamingUniquenessException> {
+            testValidation(
+                of = Dto(),
+                with = validation {
+                    the::simpleValue require { +pass }
+                    the.collection.namedAs(!"simpleValue") require { +pass }
+                }
+            ) {}
+        }
+    }
+
+    "First exceptional operation fails validation" {
+        val expectedException = RuntimeException("error")
+        val spec = validation<Dto> {
+            the::simpleValue.require { +pass }
+            the::collection require { throw expectedException }
+            the::map.require { throw RuntimeException() }
+        }
+
+        testValidation(Dto(), spec) {
+            result.shouldFailWith(expectedException)
+        }
+    }
+
+    "Rules can be processed conditionally" {
+        val failFirst = "fail"
+        val spec = validation<Dto> {
+            val status = if (the.simpleValue === failFirst) +failWithMessage { "1" } else +pass
+            status.whenValid { +failWithMessage { "2" } }
+        }
+
+        testValidation(Dto(simpleValue = failFirst), spec) {
+            result.shouldBeInvalidBecause(validated.failed(withMessage = "1"))
+        }
+        testValidation(Dto(), spec) {
+            result.shouldBeInvalidBecause(validated.failed(withMessage = "2"))
+        }
+    }
+
     "Exception handling" - {
         val expectedException = RuntimeException("error")
 
@@ -120,18 +155,6 @@ class ValidationTests : FreeSpec({
                 the::simpleValue require {
                     +ThrowingCheck(expectedException).toValidationRule { "" }
                 }
-            }
-
-            testValidation(Dto(), spec) {
-                result.shouldFailWith(expectedException)
-            }
-        }
-
-        // TODO: add support for throwing without explicit call to ValidationResult.getOrThrow()
-        "First exceptional operation fails validation".config(enabled = false) {
-            val spec = validation<Dto> {
-                the::simpleValue.require { throw expectedException }
-                the::collection require { throw RuntimeException() }
             }
 
             testValidation(Dto(), spec) {
@@ -206,42 +229,22 @@ class ValidationTests : FreeSpec({
         "Exceptional operations can be recovered into validation blocks" {
             val expectedMessage = "exception msg"
             val spec = validation<Dto> {
-                val failingResult = the::simpleValue require {
-                    the::length require { throw IllegalStateException(expectedMessage) }
+                the.simpleValue {
+                    catching {
+                        the::length require { throw IllegalStateException(expectedMessage) }
+                    }.recover(
+                        from<IllegalStateException> { +pass }
+                    ).whenValid {
+                        +failWithMessage { "1" }
+                    }
                 }
-                failingResult.recoverFrom<RuntimeException> { +pass }
             }
 
             testValidation(Dto(), spec) {
-                result.shouldBeValid()
+                result.shouldBeInvalidBecause(
+                    validated.simpleValue.failed(withMessage = "1")
+                )
             }
-        }
-    }
-
-    "Rules can be processed conditionally" {
-        val failFirst = "fail"
-        val spec = validation<Dto> {
-            val result = if (the.simpleValue === failFirst) +failWithMessage { "1" } else +pass
-            result.whenValid { +failWithMessage { "2" } }
-        }
-
-        testValidation(Dto(simpleValue = failFirst), spec) {
-            result.shouldBeInvalidBecause(validated.failed(withMessage = "1"))
-        }
-        testValidation(Dto(), spec) {
-            result.shouldBeInvalidBecause(validated.failed(withMessage = "2"))
-        }
-    }
-
-    "Naming duplication errors are not caught" {
-        shouldThrow<ValidationScope.NamingUniquenessException> {
-            testValidation(
-                of = Dto(),
-                with = validation {
-                    the::simpleValue require { +failWithMessage { "1" } }
-                    the.collection.namedAs(!"simpleValue") require { +failWithMessage { "2" } }
-                }
-            ) {}
         }
     }
 })

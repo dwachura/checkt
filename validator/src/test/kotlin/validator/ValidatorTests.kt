@@ -1,5 +1,6 @@
 package io.dwsoft.checkt.validator
 
+import io.dwsoft.checkt.core.the
 import io.dwsoft.checkt.core.validation
 import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
@@ -17,11 +18,11 @@ class ValidatorTests : FreeSpec({
             val middleName: String? = null,
             val phoneNumber: String? = null,
         ) : Validated<CreateUserRequest> by delegate(validation {
-            subject::firstName require { +failWithMessage { "1" } }
-            subject::lastName require { +failWithMessage { "2" } }
-            subject::age require { +failWithMessage { "3" } }
-            subject::middleName require { +failWithMessage { "4" } }
-            subject::phoneNumber require { +failWithMessage { "5" } }
+            the::firstName require { +failWithMessage { "1" } }
+            the::lastName require { +failWithMessage { "2" } }
+            the::age require { +failWithMessage { "3" } }
+            the::middleName require { +failWithMessage { "4" } }
+            the::phoneNumber require { +failWithMessage { "5" } }
         })
 
         val request = CreateUserRequest()

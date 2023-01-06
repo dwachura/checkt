@@ -1,5 +1,6 @@
 package io.dwsoft.checkt.core
 
+import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 
 /*
@@ -23,9 +24,7 @@ fun <T> validation(validationBlock: ValidationBlock<T>): ValidationSpecification
     spec@{ namedAs ->
         validateCatching {
             ValidationScope(ValidationPath(namedAs)).apply {
-                toValidationOf(this@spec)
-                    .validationBlock()
-                    .getOrThrow()
+                toValidationOf(this@spec).validationBlock()
             }.status
         }
     }
@@ -44,14 +43,6 @@ suspend fun <T> T.validate(
  * It creates validation context composed of validated value, i.e. [subject] together
  * with a [named scope][ValidationScope] within which defined rules are executed.
  *
- * Besides providing more readable and user-friendly DSL functions than
- * [ValidationScope] it also performs validation operations in an exception-safely
- * manner, as each validation operation defined by the DSL returns
- * [ValidationBlockReturnable] instances. They may be viewed as
- * [ValidationResult]-based equivalents of [ValidationStatus]-based
- * [ValidationScopeBlockReturnable]s which are returned by [ValidationScope]'s
- * functions.
- *
  * [ValidationOf] is also [validation rules "namespace"][ValidationRules], giving
  * access to the variety of [validation rules][ValidationRule] DSL functions.
  *
@@ -67,43 +58,40 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      * [validation rule][this].
      */
     suspend operator fun <C : Check<V, P, C>, P : Check.Params<C>>
-            ValidationRule<C, V, P>.unaryPlus(): ValidationBlockReturnable =
-        internalsGate.validationBlock {
+            ValidationRule<C, V, P>.unaryPlus(): ValidationStatus =
+        with(internalsGate) {
             scope.verifyValue(subject, this@unaryPlus)
         }
 
     /**
      * Validates value (passed as a receiver) against given [validation logic]
-     * [block], executed under the current context's [naming]
-     * [ValidationScope.validationPath].
+     * [validationBlock], executed under the current context's
+     * [naming][ValidationScope.validationPath].
      */
     suspend operator fun <T> T.invoke(
-        block: ValidationBlock<T>
-    ): ValidationBlockReturnable =
-        internalsGate.validationBlock {
+        validationBlock: ValidationBlock<T>
+    ): ValidationStatus =
+        with(internalsGate) {
             scope.validate {
-                returning(
-                    toValidationOf(this@invoke).block()
-                )
+                toValidationOf(this@invoke).validationBlock()
             }
         }
 
     /**
-     * Validate given [value][Named] against [validation logic][block] into a new,
-     * [named][Named.name] [context][ValidationOf] relative to the current one.
+     * Validate given [value][Named] against [validation logic][validationBlock]
+     * into a new, [named][Named.name] [context][ValidationOf] relative to the
+     * current one.
      *
      * New naming must be unique under the current context, [unrecoverable error]
      * [ValidationResultSettings.unrecoverableErrorTypes] is thrown otherwise (see
      * [ValidationScope.validate]).
      */
     suspend infix fun <T> Named<T>.require(
-        block: ValidationBlock<T>
-    ): ValidationBlockReturnable =
-        internalsGate.validationBlock {
+        validationBlock: ValidationBlock<T>
+    ): ValidationStatus =
+        with(internalsGate) {
             scope.validate(name.asSegment()) {
-                returning(
-                    toValidationOf(value).block()
-                )
+                toValidationOf(value).validationBlock()
             }
         }
 
@@ -113,31 +101,58 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      * property specified ([KProperty0.name] and [KProperty0.get] respectively).
      */
     suspend infix fun <T> KProperty0<T>.require(
-        block: ValidationBlock<T>
-    ): ValidationBlockReturnable =
-        toNamed().require(block)
+        validationBlock: ValidationBlock<T>
+    ): ValidationStatus =
+        toNamed().require(validationBlock)
 
     /**
      * DSL version of [runWhenValid] making [current context][ValidationOf]
-     * available into passed [validation block][block].
+     * available into passed [validation block][validationBlock].
      */
-    suspend fun ValidationResult.whenValid(
-        block: ValidationBlock<V>
-    ): ValidationBlockReturnable =
-        internalsGate.validationBlock {
-            runWhenValid { block() }.getOrThrow()
+    suspend fun ValidationStatus.whenValid(
+        validationBlock: ValidationBlock<V>
+    ): ValidationStatus =
+        takeIf { it is ValidationStatus.Invalid }
+            ?: subject.invoke(validationBlock)
+
+    /**
+     * Runs given [validation logic][validationBlock] in a safe manner, catching
+     * exceptions thrown, that can be [recovered][recover] later.
+     */
+    suspend fun catching(validationBlock: ValidationBlock<V>): ValidationResult =
+        validateCatching {
+            subject { validationBlock() }
         }
 
     /**
-     * DSL version of [runWhenFailureOfType] making [current context][ValidationOf]
-     * available into passed [validation block][block].
+     * DSL version of [catch] making [current context][ValidationOf]
+     * available into passed [fallback operations][ValidationFallback].
+     *
+     * Fallbacks passed should conform to the same rules that [catch] function
+     * defines.
      */
-    suspend inline fun <reified E : Throwable> ValidationResult.recoverFrom(
-        crossinline block: ValidationBlock1<V, E>,
-    ): ValidationBlockReturnable =
-        (this@ValidationOf as Internals).validationBlock {
-            runWhenFailureOfType<E> { block(it) }.getOrThrow()
-        }
+    suspend fun ValidationResult.recover(
+        vararg fallbacks: ValidationFallback<V, *>
+    ): ValidationStatus {
+        val convertedFallbacks = fallbacks.map { fallback ->
+            FallbackOf(fallback.errorType) {
+                subject {
+                    @Suppress("UNCHECKED_CAST")
+                    (fallback.func as ValidationBlock1<V, Throwable>)(it)
+                }
+            }
+        }.toTypedArray()
+        return catch(*convertedFallbacks).getOrThrow()
+    }
+
+    /**
+     * Factory of [validation fallbacks][ValidationFallback] for errors of
+     * type [T].
+     */
+    inline fun <reified T : Throwable> from(
+        noinline func: ValidationBlock1<V, T>
+    ): ValidationFallback<V, T> =
+        ValidationFallback(T::class, func)
 
     sealed class Internals<V>(
         subject: V,
@@ -154,13 +169,11 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
  */
 suspend fun <T : Iterable<EL>, EL> ValidationOf<T>.eachElement(
     block: ValidationBlock1<EL, Int>,
-): ValidationBlockReturnable =
-    internalsGate.validationBlock {
+): ValidationStatus =
+    with(internalsGate) {
         subject.mapIndexed { idx, value ->
             scope.validate(idx.asIndex()) {
-                returning(
-                    toValidationOf(value).block(idx)
-                )
+                toValidationOf(value).block(idx)
             }
         }.fold()
     }
@@ -181,43 +194,24 @@ suspend fun <T : Map<K, V>, K, V> ValidationOf<T>.eachEntry(
     displayingKeysAs: (key: K) -> NotBlankString = { key -> !(key.toString()) },
     keyValidation: ValidationBlock1<K, V>? = null,
     valueValidation: ValidationBlock1<V, K>,
-): ValidationBlockReturnable =
-    internalsGate.validationBlock {
+): ValidationStatus =
+    with(internalsGate) {
         subject.map { entry ->
             val key = entry.key
             val value = entry.value
             scope.validate(displayingKeysAs(key).asKey()) {
-                val entryValidationResult = validateCatching {
-                    val valueValidationStatus = validate((!"value").asSegment()) {
-                        returning(
-                            toValidationOf(value).valueValidation(key)
-                        )
-                    }
-                    val keyValidationStatus = keyValidation?.let {
-                        validate((!"key").asSegment()) {
-                            returning(
-                                toValidationOf(key).keyValidation(value)
-                            )
-                        }
-                    } ?: ValidationStatus.Valid
-                    valueValidationStatus + keyValidationStatus
+                val valueValidationStatus = validate((!"value").asSegment()) {
+                    toValidationOf(value).valueValidation(key)
                 }
-                returning(entryValidationResult)
+                val keyValidationStatus = keyValidation?.let {
+                    validate((!"key").asSegment()) {
+                        toValidationOf(key).keyValidation(value)
+                    }
+                } ?: ValidationStatus.Valid
+                valueValidationStatus + keyValidationStatus
             }
         }.fold()
     }
-
-/**
- * Utility function for defining functions complaint to the [validation DSL]
- * [ValidationOf], i.e. that can serve as [terminators of a validation blocks]
- * [ValidationBlockReturnable].
- */
-suspend fun <T> ValidationOf.Internals<T>.validationBlock(
-    block: suspend ValidationOf.Internals<T>.() -> ValidationStatus
-): ValidationBlockReturnable =
-    ValidationBlockReturnableInternal(
-        validateCatching { block() }
-    )
 
 /**
  * Shorter alias for [validated subject][ValidationOf.subject], that can be
@@ -226,13 +220,9 @@ suspend fun <T> ValidationOf.Internals<T>.validationBlock(
 val <T> ValidationOf<T>.the: T
     get() = subject
 
-typealias ValidationBlock<T> =
-        suspend ValidationOf<T>.() -> ValidationResult
+typealias ValidationBlock<T> = suspend ValidationOf<T>.() -> Unit
 
-typealias ValidationBlock1<T, T2> =
-        suspend ValidationOf<T>.(T2) -> ValidationResult
-
-sealed interface ValidationBlockReturnable : ValidationResult
+typealias ValidationBlock1<T, T2> = suspend ValidationOf<T>.(T2) -> Unit
 
 private val <T> ValidationOf<T>.internalsGate: ValidationOf.Internals<T>
     get() = this as ValidationOf.Internals<T>
@@ -245,10 +235,7 @@ private class ValidationOfInternal<V>(
 private fun <T> ValidationScope.toValidationOf(value: T): ValidationOf<T> =
     ValidationOfInternal(value, this)
 
-private class ValidationBlockReturnableInternal(
-    result: ValidationResult
-) : ValidationBlockReturnable, ValidationResult by result
-
-private suspend fun ValidationScope.returning(
-    result: ValidationResult
-): ValidationStatus = result.getOrThrow()
+class ValidationFallback<V, E : Throwable>(
+    val errorType: KClass<E>,
+    val func: ValidationBlock1<V, E>
+)

@@ -22,6 +22,9 @@ sealed interface ValidationResult {
 /**
  * Executes given [validation block][block], catching all eventual "standard"
  * exceptions thrown during it and returning [ValidationResult].
+ *
+ * [Unrecoverable exceptions][ValidationResultSettings.unrecoverableErrorTypes],
+ * i.e. those that should not be handled by the user are rethrown.
  */
 suspend fun validateCatching(
     block: suspend () -> ValidationStatus
@@ -53,22 +56,41 @@ suspend fun ValidationResult.runWhenValid(
     }
 
 /**
- * Runs given [block] when the [result][ValidationResult] represents failed
- * completion caused by exception of type [T]. Failure cause is passed to the
- * callback lambda as a parameter.
+ * Runs given [fallback operations][fallbacks] when the
+ * [result][ValidationResult] represents exceptional completion.
+ *
+ * [Fallbacks][FallbackOf] passed should conform to the standard try-catch
+ * rules regarding exception subtyping, i.e. fallback of more specific error
+ * types should be placed before fallbacks used to recover from the general
+ * error types. Otherwise, they won't be used to process exceptions cause those
+ * are handled by the first fallback that supports given error type.
  */
-inline fun <reified T : Throwable> ValidationResult.runWhenFailureOfType(
-    block: (exception: T) -> ValidationResult,
+suspend fun ValidationResult.catch(
+    vararg fallbacks: FallbackOf<*>
 ): ValidationResult =
-    result.fold(
-        onSuccess = { this },
-        onFailure = { exception ->
-            when (exception) {
-                is T -> block(exception)
-                else -> this
+    validateCatching {
+        result.fold(
+            onSuccess = { this.getOrThrow() },
+            onFailure = { exception ->
+                fallbacks.find { it.errorType.isInstance(exception) }
+                    ?.let {
+                        @Suppress("UNCHECKED_CAST")
+                        (it as FallbackOf<Throwable>).func(exception)
+                    } ?: this.getOrThrow()
             }
-        }
-    )
+        )
+    }
+
+class FallbackOf<E : Throwable>(
+    val errorType: KClass<E>,
+    val func: suspend (E) -> ValidationStatus
+) {
+    companion object {
+        inline operator fun <reified T : Throwable> invoke(
+            noinline func: suspend (exception: T) -> ValidationStatus,
+        ): FallbackOf<T> = FallbackOf(T::class, func)
+    }
+}
 
 @JvmInline
 private value class ValidationResultInternal(
@@ -77,12 +99,14 @@ private value class ValidationResultInternal(
 
 object ValidationResultSettings {
     /**
-     * User-defined error types that should not be caught by [ValidationResult].
+     * User-defined error types that should not be handled by [ValidationResult]
+     * mechanism.
      */
     var customUnrecoverableErrorTypes: List<KClass<out Throwable>> = emptyList()
 
     /**
-     * Default error types that should not be caught by [ValidationResult].
+     * Default error types that should not be handled by [ValidationResult]
+     * mechanism.
      */
     val baseUnrecoverableErrorTypes: List<KClass<out Throwable>> =
         listOf(
@@ -94,6 +118,12 @@ object ValidationResultSettings {
     fun isUnrecoverable(throwable: Throwable): Boolean =
         throwable::class in unrecoverableErrorTypes
 
+    /**
+     * List of unrecoverable error types.
+     *
+     * Additional ones may be specified using [customUnrecoverableErrorTypes]
+     * setting.
+     */
     private val unrecoverableErrorTypes
         get() = (baseUnrecoverableErrorTypes + customUnrecoverableErrorTypes)
 }

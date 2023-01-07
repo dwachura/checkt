@@ -14,10 +14,10 @@ class Equals<V>(private val other: V) : Check<V, Equals.Params<V>, Equals<V>> {
     data class Params<V>(val other: V) : Check.Params<Equals<V>>()
 }
 
-fun <T> ValidationRules<T>.beEqualTo(
+fun <T> ValidationRules<T>.equalTo(
     other: T,
     errorMessage: LazyErrorMessage<Equals<T>, T, Equals.Params<T>> =
-        { "${validationPath()} must equal to ${validationParams.other}" },
+        { "Value must equal to ${validationParams.other}" },
 ): ValidationRule<Equals<T>, T, Equals.Params<T>> =
     Equals(other).toValidationRule(errorMessage)
 
@@ -30,9 +30,9 @@ class IsDifferent<V>(private val other: V) : Check<V, IsDifferent.Params<V>, IsD
     data class Params<V>(val other: V) : Check.Params<IsDifferent<V>>()
 }
 
-fun <T> ValidationRules<T>.beDifferentThan(
+fun <T> ValidationRules<T>.differentThan(
     other: T,
     errorMessage: LazyErrorMessage<IsDifferent<T>, T, IsDifferent.Params<T>> =
-        { "${validationPath()} must be different than ${validationParams.other}" },
+        { "Value must be different than ${validationParams.other}" },
 ): ValidationRule<IsDifferent<T>, T, IsDifferent.Params<T>> =
     IsDifferent(other).toValidationRule(errorMessage)

@@ -15,7 +15,7 @@ class NonNull<V> : Check.Parameterless<V?, NonNull<V?>> by Check.Parameterless.d
 
 fun <T> ValidationRules<T?>.notBeNull(
     errorMessage: LazyErrorMessage<NonNull<T?>, T?, None<NonNull<T?>>> =
-        { "${validationPath()} must not be null" },
+        { "Value must not be null" },
 ): ValidationRule<NonNull<T?>, T?, None<NonNull<T?>>> =
     NonNull<T?>().toValidationRule(errorMessage)
 
@@ -35,6 +35,6 @@ class IsNull<V> : Check.Parameterless<V?, IsNull<V?>> by Check.Parameterless.del
 
 fun <T> ValidationRules<T?>.beNull(
     errorMessage: LazyErrorMessage<IsNull<T?>, T?, None<IsNull<T?>>> =
-        { "${validationPath()} must be null" },
+        { "Value must be null" },
 ): ValidationRule<IsNull<T?>, T?, None<IsNull<T?>>> =
     IsNull<T?>().toValidationRule(errorMessage)

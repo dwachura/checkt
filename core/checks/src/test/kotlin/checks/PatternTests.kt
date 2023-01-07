@@ -1,9 +1,15 @@
 package io.dwsoft.checkt.core.checks
 
+import io.dwsoft.checkt.core.validation
 import io.dwsoft.checkt.testing.forAll
+import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldNotPass
 import io.dwsoft.checkt.testing.shouldPass
-import io.kotest.core.spec.style.StringSpec
+import io.dwsoft.checkt.testing.testValidation
+import io.dwsoft.checkt.testing.violated
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -15,12 +21,30 @@ import io.kotest.property.exhaustive.flatMap
 import io.kotest.property.exhaustive.map
 import io.kotest.property.exhaustive.of
 
-class PatternTests : StringSpec({
-    "${Pattern::class.simpleName} check" {
+class PatternTests : FreeSpec({
+    "${Pattern::class.simpleName}" - {
         forAll(casesFor(anyRegex())) {
-            when {
-                value matches regex -> value shouldPass Pattern(regex)
-                else -> value shouldNotPass Pattern(regex)
+            "Check works" {
+                when {
+                    value matches regex -> value shouldPass Pattern(regex)
+                    else -> value shouldNotPass Pattern(regex)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = value,
+                    with = validation { +matchesRegex(regex) }
+                ) {
+                    when {
+                        value matches regex -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<Pattern> { msg ->
+                                msg shouldContain "Value must match regex '$regex'"
+                            }
+                        )
+                    }
+                }
             }
         }
     }

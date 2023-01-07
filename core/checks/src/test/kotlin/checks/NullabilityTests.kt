@@ -5,61 +5,92 @@ import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldNotPass
 import io.dwsoft.checkt.testing.shouldPass
 import io.dwsoft.checkt.testing.testValidation
 import io.dwsoft.checkt.testing.violated
-import io.kotest.core.spec.style.StringSpec
-import io.kotest.matchers.collections.shouldHaveSize
+import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
 import io.kotest.property.exhaustive.of
 
-class NullabilityTests : StringSpec({
-    "${NonNull::class.simpleName} check" {
+class NullabilityTests : FreeSpec({
+    "${NonNull::class.simpleName}" - {
         forAll(nullabilityCases()) {
-            when {
-                value != null -> value shouldPass NonNull()
-                else -> value shouldNotPass NonNull()
+            "Check works" {
+                when {
+                    value != null -> value shouldPass NonNull()
+                    else -> value shouldNotPass NonNull()
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = value,
+                    with = validation { +notBeNull() }
+                ) {
+                    when {
+                        value != null -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<NonNull<*>> { msg ->
+                                msg shouldContain "Value must not be null"
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
-    "${IsNull::class.simpleName} check" {
+    "${IsNull::class.simpleName}" - {
         forAll(nullabilityCases()) {
-            when {
-                value != null -> value shouldNotPass IsNull()
-                else -> value shouldPass IsNull()
+            "Check works" {
+                when {
+                    value != null -> value shouldNotPass IsNull()
+                    else -> value shouldPass IsNull()
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = value,
+                    with = validation { +beNull() }
+                ) {
+                    when (value) {
+                        null -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<IsNull<*>> { msg ->
+                                msg shouldContain "Value must be null"
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
-    // TODO: refactor
-    "test1" {
-        val obj = Any()
-        testValidation(
-            of = (obj as Any?),
-            with = validation {
-                subjectNotNullAnd { +failWithMessage { "1" } }
-            },
-        ) {
-            result.shouldBeInvalidBecause(
-                obj.failed(withMessage = "1")
-            )
-        }
-    }
+    "Rules are applied only when subject is non-null" {
+        forAll(nullabilityCases()) {
+            testValidation(
+                of = value,
+                with = validation {
+                    subjectNotNullAnd(nonNullErrorMessage = { "1" }) {
+                        +failWithMessage { "2" }
+                    }
+                }
+            ) {
+                when (value) {
+                    null -> result.shouldBeInvalidBecause(
+                        validated.violated<NonNull<*>>(withMessage = "1")
+                    )
 
-    "test2" {
-        val obj: Any? = null
-        testValidation(
-            of = obj,
-            with = validation {
-                subjectNotNullAnd { +failWithMessage { "1" } }
-            },
-        ) {
-            result.shouldBeInvalidBecause(
-                obj.violated<NonNull<*>>()
-            ).violations shouldHaveSize 1
+                    else -> result.shouldBeInvalidBecause(
+                        validated.failed(withMessage = "2")
+                    )
+                }
+            }
         }
     }
 })

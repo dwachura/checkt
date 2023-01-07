@@ -135,7 +135,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
         vararg fallbacks: ValidationFallback<V, *>
     ): ValidationStatus {
         val convertedFallbacks = fallbacks.map { fallback ->
-            FallbackOf(fallback.errorType) {
+            RecoveryFrom(fallback.errorType) {
                 subject {
                     @Suppress("UNCHECKED_CAST")
                     (fallback.func as ValidationBlock1<V, Throwable>)(it)

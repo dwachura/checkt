@@ -37,7 +37,7 @@ class ValidationResultTests : FreeSpec({
             val failure = validateCatching { throw RuntimeException() }
 
             val result = failure.catch(
-                FallbackOf<RuntimeException> { Valid }
+                RecoveryFrom<RuntimeException> { Valid }
             )
 
             result.shouldBeValid()
@@ -47,17 +47,17 @@ class ValidationResultTests : FreeSpec({
             class SpecificException : RuntimeException()
             val exception = SpecificException()
             val failure = validateCatching { throw exception }
-            val fallbackMock = FallbackOf<RuntimeException>(
+            val recoveryMock = RecoveryFrom<RuntimeException>(
                 mockk { coEvery { this@mockk(any()) } returns Valid }
             )
 
             val result = failure.catch(
-                fallbackMock,
-                mockk<FallbackOf<SpecificException>>(),
+                recoveryMock,
+                mockk<RecoveryFrom<SpecificException>>(),
             )
 
             result.shouldBeValid()
-            coVerify(exactly = 1) { fallbackMock.func(exception) }
+            coVerify(exactly = 1) { recoveryMock.func(exception) }
         }
     }
 })

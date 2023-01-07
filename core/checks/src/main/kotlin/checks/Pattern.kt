@@ -16,9 +16,9 @@ class Pattern(private val regex: Regex) :
     data class Params(val regex: Regex) : Check.Params<Pattern>()
 }
 
-fun ValidationRules<CharSequence>.matchRegex(
+fun ValidationRules<CharSequence>.matchesRegex(
     regex: Regex,
     errorMessage: LazyErrorMessage<Pattern, CharSequence, Pattern.Params> =
-        { "${validationPath()} must match regex '${validationParams.regex}'" },
+        { "Value must match regex '${validationParams.regex}'" },
 ): ValidationRule<Pattern, CharSequence, Pattern.Params> =
     Pattern(regex).toValidationRule(errorMessage)

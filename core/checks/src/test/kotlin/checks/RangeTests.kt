@@ -1,9 +1,16 @@
 package io.dwsoft.checkt.core.checks
 
+import io.dwsoft.checkt.core.validation
 import io.dwsoft.checkt.testing.forAll
+import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldNotPass
 import io.dwsoft.checkt.testing.shouldPass
+import io.dwsoft.checkt.testing.testValidation
+import io.dwsoft.checkt.testing.violated
+import io.kotest.core.spec.style.FreeSpec
 import io.kotest.core.spec.style.StringSpec
+import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -14,21 +21,57 @@ import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.next
 import io.kotest.property.exhaustive.of
 
-class RangeTests : StringSpec({
-    "${InRange::class.simpleName} check" {
+class RangeTests : FreeSpec({
+    "${InRange::class.simpleName}" - {
         forAll(casesFor(anyRange())) {
-            when {
-                element in range -> element shouldPass InRange(range)
-                else -> element shouldNotPass InRange(range)
+            "Check works" {
+                when (element) {
+                    in range -> element shouldPass InRange(range)
+                    else -> element shouldNotPass InRange(range)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = element,
+                    with = validation { +inRange(range) }
+                ) {
+                    when (element) {
+                        in range -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<InRange<*>> { msg ->
+                                msg shouldContain "Value must be in range $range"
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
-    "${OutsideRange::class.simpleName} check" {
+    "${OutsideRange::class.simpleName}" - {
         forAll(casesFor(anyRange())) {
-            when {
-                element in range -> element shouldNotPass OutsideRange(range)
-                else -> element shouldPass OutsideRange(range)
+            "Check works" {
+                when (element) {
+                    in range -> element shouldNotPass OutsideRange(range)
+                    else -> element shouldPass OutsideRange(range)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = element,
+                    with = validation { +outsideRange(range) }
+                ) {
+                    when (element) {
+                        in range -> result.shouldBeInvalidBecause(
+                            validated.violated<OutsideRange<*>> { msg ->
+                                msg shouldContain "Value must not be in range $range"
+                            }
+                        )
+                        else -> result.shouldBeValid()
+                    }
+                }
             }
         }
     }

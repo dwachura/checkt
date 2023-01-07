@@ -9,7 +9,7 @@ class ContainsAny<V>(elements: Collection<V>) :
     Check<Collection<V>, ContainsAny.Params<V>, ContainsAny<V>>
 {
     private val elements = elements.toSet()
-    override val params = Params(this.elements)
+    override val params = Params(elements)
 
     override suspend fun invoke(value: Collection<V>): Boolean =
         value.any { elements.contains(it) }
@@ -17,12 +17,12 @@ class ContainsAny<V>(elements: Collection<V>) :
     data class Params<V>(val elements: Collection<V>) : Check.Params<ContainsAny<V>>()
 }
 
-fun <T, T2 : Collection<T>> ValidationRules<T2>.containAnyOf(
-    vararg elements: T,
+fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAnyOf(
+    elements: T2,
     errorMessage: LazyErrorMessage<ContainsAny<T>, T2, ContainsAny.Params<T>> =
-        { "${validationPath()} must contain any of ${validationParams.elements}" },
+        { "Value must contain any of ${validationParams.elements}" },
 ): ValidationRule<ContainsAny<T>, T2, ContainsAny.Params<T>> =
-    ContainsAny(elements.toList()).toValidationRule(errorMessage)
+    ContainsAny(elements).toValidationRule(errorMessage)
 
 class ContainsAll<V>(elements: Collection<V>) :
     Check<Collection<V>, ContainsAll.Params<V>, ContainsAll<V>>
@@ -47,9 +47,9 @@ class ContainsAll<V>(elements: Collection<V>) :
     data class Params<V>(val elements: Collection<V>) : Check.Params<ContainsAll<V>>()
 }
 
-fun <T, T2 : Collection<T>> ValidationRules<T2>.containAllOf(
-    vararg elements: T,
+fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAllOf(
+    elements: T2,
     errorMessage: LazyErrorMessage<ContainsAll<T>, T2, ContainsAll.Params<T>> =
-        { "${validationPath()} must contain all of ${validationParams.elements}" },
+        { "Value must contain all of ${validationParams.elements}" },
 ): ValidationRule<ContainsAll<T>, T2, ContainsAll.Params<T>> =
-    ContainsAll(elements.toList()).toValidationRule(errorMessage)
+    ContainsAll(elements).toValidationRule(errorMessage)

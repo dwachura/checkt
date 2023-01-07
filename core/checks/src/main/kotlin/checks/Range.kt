@@ -16,10 +16,10 @@ class InRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
     data class Params<V : Comparable<V>>(val range: ClosedRange<V>) : Check.Params<InRange<V>>()
 }
 
-fun <T : Comparable<T>> ValidationRules<T>.beInRange(
+fun <T : Comparable<T>> ValidationRules<T>.inRange(
     range: ClosedRange<T>,
     errorMessage: LazyErrorMessage<InRange<T>, T, InRange.Params<T>> =
-        { "${validationPath()} must be in range ${validationParams.range}" },
+        { "Value must be in range ${validationParams.range}" },
 ): ValidationRule<InRange<T>, T, InRange.Params<T>> =
     InRange(range).toValidationRule(errorMessage)
 
@@ -34,9 +34,9 @@ class OutsideRange<V : Comparable<V>>(private val range: ClosedRange<V>) :
     data class Params<V : Comparable<V>>(val range: ClosedRange<V>) : Check.Params<OutsideRange<V>>()
 }
 
-fun <T : Comparable<T>> ValidationRules<T>.beOutsideRange(
+fun <T : Comparable<T>> ValidationRules<T>.outsideRange(
     range: ClosedRange<T>,
     errorMessage: LazyErrorMessage<OutsideRange<T>, T, OutsideRange.Params<T>> =
-        { "${validationPath()} must not be in range ${validationParams.range}" },
+        { "Value must not be in range ${validationParams.range}" },
 ): ValidationRule<OutsideRange<T>, T, OutsideRange.Params<T>> =
     OutsideRange(range).toValidationRule(errorMessage)

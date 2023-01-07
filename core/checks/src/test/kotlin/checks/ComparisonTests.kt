@@ -1,9 +1,15 @@
 package io.dwsoft.checkt.core.checks
 
+import io.dwsoft.checkt.core.validation
 import io.dwsoft.checkt.testing.forAll
+import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldNotPass
 import io.dwsoft.checkt.testing.shouldPass
+import io.dwsoft.checkt.testing.testValidation
+import io.dwsoft.checkt.testing.violated
 import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -13,38 +19,110 @@ import io.kotest.property.arbitrary.next
 import io.kotest.property.exhaustive.of
 
 class ComparisonTests : FreeSpec({
-    "${LessThan::class.simpleName} check" {
+    "${LessThan::class.simpleName}" - {
         forAll(comparisonCases()) {
-            when {
-                first < second -> first shouldPass LessThan(second)
-                else -> first shouldNotPass LessThan(second)
+            "Check works" {
+                when {
+                    first < second -> first shouldPass LessThan(second)
+                    else -> first shouldNotPass LessThan(second)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = first,
+                    with = validation { +lessThan(second) }
+                ) {
+                    when {
+                        first < second -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<LessThan<*>> { msg ->
+                                msg shouldContain "Value must be less than $second"
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
-    "${LessThanOrEqual::class.simpleName} check" {
+    "${LessThanOrEqual::class.simpleName}" - {
         forAll(comparisonCases()) {
-            when {
-                first > second -> first shouldNotPass LessThanOrEqual(second)
-                else -> first shouldPass LessThanOrEqual(second)
+            "Check works" {
+                when {
+                    first > second -> first shouldNotPass LessThanOrEqual(second)
+                    else -> first shouldPass LessThanOrEqual(second)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = first,
+                    with = validation { +notGreaterThan(second) }
+                ) {
+                    when {
+                        first <= second -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<LessThanOrEqual<*>> { msg ->
+                                msg shouldContain "Value must not be greater than $second"
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
-    "${GreaterThan::class.simpleName} check" {
+    "${GreaterThan::class.simpleName}" - {
         forAll(comparisonCases()) {
-            when {
-                first > second -> first shouldPass GreaterThan(second)
-                else -> first shouldNotPass GreaterThan(second)
+            "Check works" {
+                when {
+                    first > second -> first shouldPass GreaterThan(second)
+                    else -> first shouldNotPass GreaterThan(second)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = first,
+                    with = validation { +greaterThan(second) }
+                ) {
+                    when {
+                        first > second -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<GreaterThan<*>> { msg ->
+                                msg shouldContain "Value must be greater than $second"
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
-    "${GreaterThanOrEqual::class.simpleName} check" {
+    "${GreaterThanOrEqual::class.simpleName}" - {
         forAll(comparisonCases()) {
-            when {
-                first < second -> first shouldNotPass GreaterThanOrEqual(second)
-                else -> first shouldPass GreaterThanOrEqual(second)
+            "Check works" {
+                when {
+                    first < second -> first shouldNotPass GreaterThanOrEqual(second)
+                    else -> first shouldPass GreaterThanOrEqual(second)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = first,
+                    with = validation { +notLessThan(second) }
+                ) {
+                    when {
+                        first >= second -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<GreaterThanOrEqual<*>> { msg ->
+                                msg shouldContain "Value must not be less than $second"
+                            }
+                        )
+                    }
+                }
             }
         }
     }

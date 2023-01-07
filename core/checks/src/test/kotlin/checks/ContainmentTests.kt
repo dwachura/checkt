@@ -1,9 +1,15 @@
 package io.dwsoft.checkt.core.checks
 
+import io.dwsoft.checkt.core.validation
 import io.dwsoft.checkt.testing.forAll
+import io.dwsoft.checkt.testing.shouldBeInvalidBecause
+import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldNotPass
 import io.dwsoft.checkt.testing.shouldPass
+import io.dwsoft.checkt.testing.testValidation
+import io.dwsoft.checkt.testing.violated
 import io.kotest.core.spec.style.FreeSpec
+import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -19,24 +25,59 @@ import io.kotest.property.exhaustive.merge
 import io.kotest.property.exhaustive.of
 
 class ContainmentTests : FreeSpec({
-    "${ContainsAny::class.simpleName} check" {
+    "${ContainsAny::class.simpleName}" - {
         forAll(containmentCases()) {
-            when {
-                collection containsAnyOf expectedElements ->
-                    collection shouldPass ContainsAny(expectedElements)
-                else ->
-                    collection shouldNotPass ContainsAny(expectedElements)
+            "Check works" {
+                when {
+                    collection containsAnyOf expectedElements ->
+                        collection shouldPass ContainsAny(expectedElements)
+                    else -> collection shouldNotPass ContainsAny(expectedElements)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = collection,
+                    with = validation { +containsAnyOf(expectedElements) }
+                ) {
+                    when {
+                        collection containsAnyOf expectedElements -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<ContainsAny<*>> { msg ->
+                                msg shouldContain "Value must contain any of $expectedElements"
+                            }
+                        )
+                    }
+                }
             }
         }
     }
 
-    "${ContainsAll::class.simpleName} check" {
+    "${ContainsAll::class.simpleName}" - {
         forAll(containmentCases()) {
-            when {
-                collection containsAllOf expectedElements ->
-                    collection shouldPass ContainsAll(expectedElements)
-                else ->
-                    collection shouldNotPass ContainsAll(expectedElements)
+            "Check works" {
+                when {
+                    collection containsAllOf expectedElements ->
+                        collection shouldPass ContainsAll(expectedElements)
+                    else ->
+                        collection shouldNotPass ContainsAll(expectedElements)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = collection,
+                    with = validation { +containsAllOf(expectedElements) }
+                ) {
+                    when {
+                        collection containsAllOf expectedElements -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<ContainsAll<*>> { msg ->
+                                msg shouldContain "Value must contain all of $expectedElements"
+                            }
+                        )
+                    }
+                }
             }
         }
     }

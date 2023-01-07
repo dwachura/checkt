@@ -59,14 +59,14 @@ suspend fun ValidationResult.runWhenValid(
  * Runs given [fallback operations][fallbacks] when the
  * [result][ValidationResult] represents exceptional completion.
  *
- * [Fallbacks][FallbackOf] passed should conform to the standard try-catch
+ * [Fallbacks][RecoveryFrom] passed should conform to the standard try-catch
  * rules regarding exception subtyping, i.e. fallback of more specific error
  * types should be placed before fallbacks used to recover from the general
  * error types. Otherwise, they won't be used to process exceptions cause those
  * are handled by the first fallback that supports given error type.
  */
 suspend fun ValidationResult.catch(
-    vararg fallbacks: FallbackOf<*>
+    vararg fallbacks: RecoveryFrom<*>
 ): ValidationResult =
     validateCatching {
         result.fold(
@@ -75,20 +75,20 @@ suspend fun ValidationResult.catch(
                 fallbacks.find { it.errorType.isInstance(exception) }
                     ?.let {
                         @Suppress("UNCHECKED_CAST")
-                        (it as FallbackOf<Throwable>).func(exception)
+                        (it as RecoveryFrom<Throwable>).func(exception)
                     } ?: this.getOrThrow()
             }
         )
     }
 
-class FallbackOf<E : Throwable>(
+class RecoveryFrom<E : Throwable>(
     val errorType: KClass<E>,
     val func: suspend (E) -> ValidationStatus
 ) {
     companion object {
         inline operator fun <reified T : Throwable> invoke(
             noinline func: suspend (exception: T) -> ValidationStatus,
-        ): FallbackOf<T> = FallbackOf(T::class, func)
+        ): RecoveryFrom<T> = RecoveryFrom(T::class, func)
     }
 }
 

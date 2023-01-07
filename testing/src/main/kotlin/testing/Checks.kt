@@ -22,7 +22,7 @@ suspend infix fun <T> T.shouldNotPass(check: Check<T, *, *>) =
     }
 
 val <T> ValidationRules<T>.fail
-    get() = failWithMessage { "$value - ${validationPath()}" }
+    get() = failWithMessage { "$value invalid" }
 
 fun <T> ValidationRules<T>.failWithMessage(
     errorMessage: LazyErrorMessage<AlwaysFailingCheck, Any?, Check.Params.None<AlwaysFailingCheck>>

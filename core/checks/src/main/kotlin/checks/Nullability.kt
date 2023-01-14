@@ -9,23 +9,23 @@ import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
 import io.dwsoft.checkt.core.ValidationStatus
 
-class NonNull<V> : Check.Parameterless<V?, NonNull<V?>> by Check.Parameterless.delegate(
+class NotNull<V> : Check.Parameterless<V?, NotNull<V?>> by Check.Parameterless.delegate(
     implementation = { value -> value != null }
 )
 
 fun <T> ValidationRules<T?>.notBeNull(
-    errorMessage: LazyErrorMessage<NonNull<T?>, T?, None<NonNull<T?>>> =
+    errorMessage: LazyErrorMessage<NotNull<T?>, T?, None<NotNull<T?>>> =
         { "Value must not be null" },
-): ValidationRule<NonNull<T?>, T?, None<NonNull<T?>>> =
-    NonNull<T?>().toValidationRule(errorMessage)
+): ValidationRule<NotNull<T?>, T?, None<NotNull<T?>>> =
+    NotNull<T?>().toValidationRule(errorMessage)
 
-suspend fun <T : Any> ValidationOf<T?>.subjectNotNullAnd(
-    nonNullErrorMessage: LazyErrorMessage<NonNull<T?>, T?, None<NonNull<T?>>>? = null,
-    nonNullValidation: ValidationBlock<T>,
+suspend fun <T : Any> ValidationOf<T?>.notNullAnd(
+    notNullErrorMessage: LazyErrorMessage<NotNull<T?>, T?, None<NotNull<T?>>>? = null,
+    notNullValidation: ValidationBlock<T>,
 ): ValidationStatus {
-    val nonNullRule = nonNullErrorMessage?.let { notBeNull(it) } ?: notBeNull()
-    return (+nonNullRule).whenValid {
-        (subject!!) { nonNullValidation() }
+    val rule = notNullErrorMessage?.let { notBeNull(it) } ?: notBeNull()
+    return (+rule).whenValid {
+        (subject!!) { notNullValidation() }
     }
 }
 

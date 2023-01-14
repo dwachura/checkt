@@ -47,7 +47,9 @@ interface Check<in V, P : Check.Params<SELF>, SELF : Check<V, P, SELF>> {
         }
     }
 
-    interface Parameterless<V, SELF : Check<V, None<SELF>, SELF>> : Check<V, None<SELF>, SELF> {
+    interface Parameterless<V, SELF : Check<V, None<SELF>, SELF>> :
+        Check<V, None<SELF>, SELF>
+    {
         companion object {
             fun <C : Check<V, None<C>, C>, V> delegate(
                 implementation: (value: V) -> Boolean
@@ -55,13 +57,15 @@ interface Check<in V, P : Check.Params<SELF>, SELF : Check<V, P, SELF>> {
                 object : Parameterless<V, C> {
                     override val params: None<C> = None()
 
-                    override suspend fun invoke(value: V): Boolean = implementation(value)
+                    override suspend fun invoke(value: V): Boolean =
+                        implementation(value)
                 }
         }
     }
 }
 
-fun <C : Check<*, *, *>> KClass<out C>.checkKey(): Check.Key<C> = Check.Key(this)
+fun <C : Check<*, *, *>> KClass<out C>.checkKey(): Check.Key<C> =
+    Check.Key(this)
 
 val <C : Check<*, *, *>> C.key: Check.Key<C>
     get() = this::class.checkKey()

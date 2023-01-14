@@ -1,5 +1,8 @@
 package io.dwsoft.checkt.core
 
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.withLock
+
 /**
  * Groups [validation rules][ValidationRule] under a common [name][validationPath].
  *
@@ -9,24 +12,35 @@ package io.dwsoft.checkt.core
  * This can be used to represent a structure of a complex values being validated
  * (e.g. to provide information about validation of nested properties).
  *
- * [ValidationScope] instances are mutable, as the results of sub-scopes are
- * merged into outer scope's result and thus multithreaded usage of them should be
- * avoided.
+ * [ValidationScope] instances are mutable - every [violation][Violation] is stored
+ * into internal collection, as well as statuses of sub-scopes to be later merged
+ * into outer scope's [status].
  */
 class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
+    /**
+     * Status of a scope calculated from this scope's direct operations results
+     * and statuses of scopes enclosed into it.
+     */
     val status: ValidationStatus
         get() {
-            val thisStatus = violations.toValidationStatus()
-            val enclosedStatus = enclosedFailures.takeIf { it.isNotEmpty() }
-                ?.reduce { v1, v2 -> v1 + v2 }
-                ?: ValidationStatus.Valid
+            val thisStatus = violations.acquireAndRun { toValidationStatus() }
+            val enclosedStatus = enclosedFailures.acquireAndRun {
+                takeIf { it.isNotEmpty() }
+                    ?.reduce { v1, v2 -> v1 + v2 }
+                    ?: ValidationStatus.Valid
+            }
             return thisStatus + enclosedStatus
         }
 
-    // TODO: thread-safety
-    private val violations = mutableListOf<Violation<*, *, *>>()
-    private val enclosedFailures = mutableListOf<ValidationStatus.Invalid>()
-    private val enclosedPathElements = mutableListOf<ValidationPath.Element>()
+    private val violations = Synchronized(
+        mutableListOf<Violation<*, *, *>>()
+    )
+    private val enclosedFailures = Synchronized(
+        mutableListOf<ValidationStatus.Invalid>()
+    )
+    private val enclosedPathElements = Synchronized(
+        mutableListOf<ValidationPath.Element>()
+    )
 
     /**
      * Verifies [value] against passed [condition][rule].
@@ -43,15 +57,17 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
             .also { merge(it) }
 
     private fun merge(status: ValidationStatus) {
-        if (status is ValidationStatus.Invalid) enclosedFailures += status
+        if (status is ValidationStatus.Invalid) {
+            enclosedFailures.acquireAndRun { this += status }
+        }
     }
 
     /**
      * Executes passed [validation block][block] under:
      *
-     *  * this scope's [naming][validationPath], if the [passed element][newName]
+     *  - this scope's [naming][validationPath], if the [passed element][newName]
      *  is null (default behavior)
-     *  * a new scope with a relative [naming][validationPath] created
+     *  - a new scope with a relative [naming][validationPath] created
      *  by appending [given element][newName] to the path of this scope
      *
      * and returns [status][ValidationStatus] of this execution.
@@ -67,10 +83,12 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
             null -> applyBlockIntoNewScope(validationPath, block)
             else -> {
                 val newPath = validationPath + newName
-                if (enclosedPathElements.contains(newName)) {
-                    throw NamingUniquenessException(newPath)
+                enclosedPathElements.acquireAndRun {
+                    if (contains(newName)) {
+                        throw NamingUniquenessException(newPath)
+                    }
+                    this += newName
                 }
-                enclosedPathElements += newName
                 applyBlockIntoNewScope(newPath, block)
             }
         }
@@ -88,4 +106,11 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
         RuntimeException(
             "Scope named '${validationPath.joinToString()}' was already opened"
         )
+}
+
+private class Synchronized<T>(private val obj: T) {
+    private val lock = ReentrantLock()
+
+    fun <R> acquireAndRun(f: T.() -> R): R =
+        lock.withLock { obj.f() }
 }

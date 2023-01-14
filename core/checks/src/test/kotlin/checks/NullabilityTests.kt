@@ -17,12 +17,12 @@ import io.kotest.property.Gen
 import io.kotest.property.exhaustive.of
 
 class NullabilityTests : FreeSpec({
-    "${NonNull::class.simpleName}" - {
+    "${NotNull::class.simpleName}" - {
         forAll(nullabilityCases()) {
             "Check works" {
                 when {
-                    value != null -> value shouldPass NonNull()
-                    else -> value shouldNotPass NonNull()
+                    value != null -> value shouldPass NotNull()
+                    else -> value shouldNotPass NotNull()
                 }
             }
 
@@ -34,7 +34,7 @@ class NullabilityTests : FreeSpec({
                     when {
                         value != null -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
-                            validated.violated<NonNull<*>> { msg ->
+                            validated.violated<NotNull<*>> { msg ->
                                 msg shouldContain "Value must not be null"
                             }
                         )
@@ -76,14 +76,14 @@ class NullabilityTests : FreeSpec({
             testValidation(
                 of = value,
                 with = validation {
-                    subjectNotNullAnd(nonNullErrorMessage = { "1" }) {
+                    notNullAnd(notNullErrorMessage = { "1" }) {
                         +failWithMessage { "2" }
                     }
                 }
             ) {
                 when (value) {
                     null -> result.shouldBeInvalidBecause(
-                        validated.violated<NonNull<*>>(withMessage = "1")
+                        validated.violated<NotNull<*>>(withMessage = "1")
                     )
 
                     else -> result.shouldBeInvalidBecause(
@@ -97,11 +97,11 @@ class NullabilityTests : FreeSpec({
 
 private fun nullabilityCases(): Gen<NullabilityCase> =
     Exhaustive.of(
-        nonNullValue(),
+        notNullValue(),
         nullValue()
     )
 
-private fun nonNullValue(): NullabilityCase =
+private fun notNullValue(): NullabilityCase =
     NullabilityCase(Any())
 
 private fun nullValue(): NullabilityCase =

@@ -25,6 +25,7 @@ findProperty("checkt.testing.disabled") ?: run {
 
     tasks.test {
         useJUnitPlatform()
+        systemProperty("checkt.kotest.gradle-runtime", true)
     }
 }
 

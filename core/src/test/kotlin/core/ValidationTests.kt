@@ -7,6 +7,7 @@ import io.dwsoft.checkt.testing.pass
 import io.dwsoft.checkt.testing.shouldBeInvalid
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
 import io.dwsoft.checkt.testing.shouldBeInvalidExactlyBecause
+import io.dwsoft.checkt.testing.shouldBeValid
 import io.dwsoft.checkt.testing.shouldFailWith
 import io.dwsoft.checkt.testing.testValidation
 import io.dwsoft.checkt.testing.validationPath
@@ -26,10 +27,11 @@ class ValidationTests : FreeSpec({
         val map: Map<Double, String> = emptyMap(),
     )
 
-    "Simple values validation" {
+    "Resulting and sub-statuses are returned correctly" {
         testValidation(
             of = Dto(),
             with = validation {
+                (+pass).shouldBeValid()
                 (+failWithMessage { "1" }).shouldBeInvalid(withViolationsCountEqualTo = 1)
                 the.simpleValue {
                     +failWithMessage { "2" }
@@ -40,9 +42,7 @@ class ValidationTests : FreeSpec({
                 }).shouldBeInvalid(withViolationsCountEqualTo = 1)
                 (the.map.namedAs(!"customName") require {
                     +failWithMessage { "5" }
-                }).also {
-                    it.shouldBeInvalid(withViolationsCountEqualTo = 1)
-                }
+                }).shouldBeInvalid(withViolationsCountEqualTo = 1)
             }
         ) {
             result.shouldBeInvalidExactlyBecause(
@@ -55,7 +55,7 @@ class ValidationTests : FreeSpec({
         }
     }
 
-    "Iterable's elements validation" {
+    "Iterable's elements are validated" {
         val toValidate = Dto(collection = Arb.list(Arb.double(), 2..3).next())
         val expectedViolations = toValidate.collection.mapIndexed { idx, elem ->
             elem.failed(
@@ -76,7 +76,7 @@ class ValidationTests : FreeSpec({
         }
     }
 
-    "Map's entries validation" {
+    "Map's entries are validated" {
         val toValidate = Dto(
             map = Arb.map(Arb.double(), Arb.string(), minSize = 2, maxSize = 3).next()
         )
@@ -129,7 +129,7 @@ class ValidationTests : FreeSpec({
         }
     }
 
-    "Rules can be processed conditionally" {
+    "Rules can be executed conditionally" {
         val failFirst = "fail"
         val spec = validation<Dto> {
             val status = if (the.simpleValue === failFirst) +failWithMessage { "1" } else +pass
@@ -144,10 +144,10 @@ class ValidationTests : FreeSpec({
         }
     }
 
-    "Exception handling" - {
+    "Exceptions handling" - {
         val expectedException = RuntimeException("error")
 
-        "Exceptions from validation rules are caught" {
+        "Exceptions thrown by validation rules are caught" {
             class ThrowingCheck(val ex: Throwable) :
                 Check.Parameterless<Any, ThrowingCheck> by delegate({ throw ex })
 

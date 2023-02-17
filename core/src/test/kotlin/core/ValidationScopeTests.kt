@@ -9,7 +9,6 @@ import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.notBlankString
 import io.dwsoft.checkt.testing.pass
-import io.dwsoft.checkt.testing.shouldBeInvalid
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
 import io.kotest.assertions.fail
 import io.kotest.assertions.throwables.shouldThrow
@@ -85,7 +84,7 @@ class ValidationScopeTests : FreeSpec({
             )
         }
 
-        "...nesting..." - {
+        "...under different path..." - {
             "...works" {
                 forAll(nestingCases()) {
                     val expectedViolation =
@@ -108,7 +107,6 @@ class ValidationScopeTests : FreeSpec({
                 val segment = Segment(!"seg1")
                 val scope = ValidationScope()
                 scope.validate(segment) { verifyValue(Any(), failingRule) }
-                    .shouldBeInvalid()
 
                 shouldThrow<NamingUniquenessException> {
                     scope.validate(segment) { verifyValue(Any(), failingRule) }

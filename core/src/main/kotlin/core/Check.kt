@@ -3,21 +3,6 @@ package io.dwsoft.checkt.core
 import io.dwsoft.checkt.core.Check.Params.None
 import kotlin.reflect.KClass
 
-/*
- * TODO: "dynamic check" - check that can be defined adhoc with some "not-static" key
- *  (to differentiate "kinds" of such check) and condition.
- *  Params would be "unsafe" too - generic map; creator/user would be responsible to
- *  deal with them (parsing, usage, displaying).
- *
- * class DynamicCheck : Check<Any, DynamicCheck.Params, DynamicCheck>(
- *      id
- *      predicate,
- *      params: Map<String, Any>,
- * ) {
- *  key = class + id
- * }
- */
-
 interface Check<in V, P : Check.Params<SELF>, SELF : Check<V, P, SELF>> {
     val params: P
 

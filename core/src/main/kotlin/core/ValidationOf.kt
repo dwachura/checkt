@@ -3,13 +3,6 @@ package io.dwsoft.checkt.core
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 
-/*
- * TODO:
- *  - readme
- *  - add dsl maker ???
- *  - fail-fast mode
- */
-
 /**
  * Validation specification represents a reusable validation logic definition,
  * i.e. a function validating value under named scope.

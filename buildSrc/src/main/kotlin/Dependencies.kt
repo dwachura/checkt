@@ -13,7 +13,7 @@ object Dependencies {
     object Versions {
         val `kotlin-logging` = "2.1.23"
         val `logback-classic` = "1.2.11"
-        val `kotest` = "5.3.1"
+        val `kotest` = "5.5.4"
         val mockk = "1.12.4"
     }
 }

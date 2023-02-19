@@ -33,7 +33,7 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
         }
 
     private val violations = Synchronized(
-        mutableListOf<Violation<*, *, *>>()
+        mutableListOf<Violation<*, *>>()
     )
     private val enclosedFailures = Synchronized(
         mutableListOf<ValidationStatus.Invalid>()
@@ -48,9 +48,9 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
      * Eventual [violation][Violation] is saved into internal structures of
      * a scope and returned.
      */
-    suspend fun <C : Check<V, P, C>, V, P : Check.Params<C>> verifyValue(
+    suspend fun <C : Check<V>, V> verifyValue(
         value: V,
-        rule: ValidationRule<C, V, P>,
+        rule: ValidationRule<C, V>,
     ): ValidationStatus =
         rule.verify(value)(validationPath)
             .toValidationStatus()

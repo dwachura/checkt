@@ -1,6 +1,5 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.Check.Parameterless.Companion.delegate
 import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.pass
@@ -149,7 +148,7 @@ class ValidationTests : FreeSpec({
 
         "Exceptions thrown by validation rules are caught" {
             class ThrowingCheck(val ex: Throwable) :
-                Check.Parameterless<Any, ThrowingCheck> by delegate({ throw ex })
+                Check<Any> by Check.delegate({ throw ex })
 
             val spec = validation<Dto> {
                 the::simpleValue require {

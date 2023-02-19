@@ -35,6 +35,7 @@ ij_kotlin_method_parameters_new_line_after_left_paren = true
 ij_kotlin_method_parameters_right_paren_on_new_line = true
 ij_kotlin_method_parameters_wrap = on_every_item
 ij_kotlin_wrap_expression_body_functions = 1
+ij_kotlin_line_break_after_multiline_when_entry = false
 
 [*.java]
 ### imports

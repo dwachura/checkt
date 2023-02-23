@@ -2,7 +2,6 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
-import io.dwsoft.checkt.core.ValidationResult
 import io.dwsoft.checkt.core.ValidationStatus
 import io.dwsoft.checkt.core.Violation
 import io.dwsoft.checkt.core.checkKey
@@ -59,9 +58,9 @@ private fun ValidationStatus.shouldBeInvalidBecause(
                     ) {
                         "Actual violations: ${this.debugString()}".asClue {
                             violations.filter {
-                                it.validationContext.path == expectedPath
-                                        && it.validationContext.key == expectedCheck
-                                        && it.validatedValue == expectedValue
+                                it.context.path == expectedPath
+                                        && it.context.key == expectedCheck
+                                        && it.value == expectedValue
                             }.shouldNotBeEmpty()
                         }
                     }
@@ -79,14 +78,14 @@ private fun ValidationStatus.shouldBeInvalidBecause(
             }
         }
 
-data class ExpectedViolation<T : Check<*, *, *>>(
+data class ExpectedViolation<T : Check<*>>(
     val value: Any?,
     val path: ValidationPath,
     val check: Check.Key<T>,
     val errorMessageAssertions: (String) -> Unit,
 )
 
-inline fun <reified T : Check<*, *, *>> Any?.violated(
+inline fun <reified T : Check<*>> Any?.violated(
     noinline underPath: ValidationPathBuilder? = null,
     noinline withMessageThat: (String) -> Unit = {},
 ): ExpectedViolation<T> =
@@ -97,7 +96,7 @@ inline fun <reified T : Check<*, *, *>> Any?.violated(
         errorMessageAssertions = withMessageThat
     )
 
-inline fun <reified T : Check<*, *, *>> Any?.violated(
+inline fun <reified T : Check<*>> Any?.violated(
     noinline underPath: ValidationPathBuilder? = null,
     withMessage: String,
 ): ExpectedViolation<T> =
@@ -109,12 +108,12 @@ fun Any?.failed(
 ): ExpectedViolation<AlwaysFailingCheck> =
     violated(underPath, withMessage)
 
-fun Violation<*, *, *>.debugString() =
+fun Violation<*, *>.debugString() =
     buildString {
         append("{ ")
-        append("check: '${validationContext.key.shortIdentifier}', ")
-        append("path: '${validationContext.path.joinToString()}', ")
-        append("value: '${validatedValue}', ")
+        append("check: '${context.key.shortIdentifier}', ")
+        append("path: '${context.path.joinToString()}', ")
+        append("value: '$value', ")
         append("message: '${errorMessage}', ")
         append(" }")
     }
@@ -125,4 +124,4 @@ fun ValidationStatus.debugString() =
         is ValidationStatus.Invalid -> this.violations.joinToString { it.debugString() }
     }
 
-fun Collection<Violation<*, *, *>>.debugString() = toList().toValidationStatus().debugString()
+fun Collection<Violation<*, *>>.debugString() = toList().toValidationStatus().debugString()

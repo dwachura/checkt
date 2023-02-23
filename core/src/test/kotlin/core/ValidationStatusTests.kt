@@ -50,4 +50,4 @@ private fun invalid(withViolationsOf: List<Invalid> = emptyList()): Invalid =
 
 private fun invalid(withViolationsOf: Invalid): Invalid = invalid(listOf(withViolationsOf))
 
-private fun violation() = mockk<Violation<*, *, *>>()
+private fun violation() = mockk<Violation<*, *>>()

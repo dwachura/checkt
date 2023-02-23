@@ -1,5 +1,6 @@
 package io.dwsoft.checkt.core
 
+import io.dwsoft.checkt.core.ValidationOf.Internals
 import kotlin.reflect.KClass
 import kotlin.reflect.KProperty0
 
@@ -50,8 +51,8 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      * Checks the [currently validated value][subject] against given
      * [validation rule][this].
      */
-    suspend operator fun <C : Check<V, P, C>, P : Check.Params<C>>
-            ValidationRule<C, V, P>.unaryPlus(): ValidationStatus =
+    suspend operator fun <C> ValidationRule<C, V>.unaryPlus(): ValidationStatus
+            where C : Check<V> =
         with(internalsGate) {
             scope.verifyValue(subject, this@unaryPlus)
         }

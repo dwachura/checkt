@@ -1,56 +1,37 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.core.Check.Params.None
 import kotlin.reflect.KClass
 
-interface Check<in V, P : Check.Params<SELF>, SELF : Check<V, P, SELF>> {
-    val params: P
-
+interface Check<in V> {
     suspend operator fun invoke(value: V): Boolean
 
     /**
      * Unique key for [Check] type.
      */
-    data class Key<C : Check<*, *, *>>(val checkClass: KClass<out C>) {
+    data class Key<C : Check<*>>(val checkClass: KClass<out C>) {
         val shortIdentifier: String = checkClass.java.simpleName
         val fullIdentifier: String = checkClass.java.canonicalName
     }
 
-    abstract class Params<C : Check<*, *, C>> protected constructor() {
-        class None<C : Check<*, None<C>, C>> : Params<C>() {
-            override fun toString(): String = "Check.Params.None"
-
-            override fun equals(other: Any?): Boolean {
-                if (this === other) return true
-                if (javaClass != other?.javaClass) return false
-                return true
+    companion object {
+        fun <C : Check<V>, V> delegate(
+            implementation: Check<V>.(value: V) -> Boolean
+        ): Check<V> =
+            object : Check<V> {
+                override suspend fun invoke(value: V): Boolean =
+                    implementation(value)
             }
-
-            override fun hashCode(): Int {
-                return javaClass.hashCode()
-            }
-        }
-    }
-
-    interface Parameterless<V, SELF : Check<V, None<SELF>, SELF>> :
-        Check<V, None<SELF>, SELF>
-    {
-        companion object {
-            fun <C : Check<V, None<C>, C>, V> delegate(
-                implementation: (value: V) -> Boolean
-            ): Parameterless<V, C> =
-                object : Parameterless<V, C> {
-                    override val params: None<C> = None()
-
-                    override suspend fun invoke(value: V): Boolean =
-                        implementation(value)
-                }
-        }
     }
 }
 
-fun <C : Check<*, *, *>> KClass<out C>.checkKey(): Check.Key<C> =
+fun <C : Check<*>> KClass<out C>.checkKey(): Check.Key<C> =
     Check.Key(this)
 
-val <C : Check<*, *, *>> C.key: Check.Key<C>
+val <C : Check<*>> C.key: Check.Key<C>
     get() = this::class.checkKey()
+
+interface ParamsOf<T : ParameterizedCheck<*, SELF>, SELF : ParamsOf<T, SELF>>
+
+interface ParameterizedCheck<in V, P : ParamsOf<*, P>> : Check<V> {
+    val params: P
+}

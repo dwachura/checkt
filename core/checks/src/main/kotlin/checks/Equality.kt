@@ -1,38 +1,44 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
+import io.dwsoft.checkt.core.ParameterizedCheck
+import io.dwsoft.checkt.core.ParamsOf
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
+import io.dwsoft.checkt.core.params
 
-class Equals<V>(private val other: V) : Check<V, Equals.Params<V>, Equals<V>> {
+class Equals<V>(private val other: V) :
+    ParameterizedCheck<V, Equals.Params<V>>
+{
     override val params = Params(other)
 
     override suspend fun invoke(value: V): Boolean =
         value == other
 
-    data class Params<V>(val other: V) : Check.Params<Equals<V>>()
+    data class Params<V>(val other: V) : ParamsOf<Equals<V>, Params<V>>
 }
 
 fun <T> ValidationRules<T>.equalTo(
     other: T,
-    errorMessage: LazyErrorMessage<Equals<T>, T, Equals.Params<T>> =
-        { "Value must equal to ${validationParams.other}" },
-): ValidationRule<Equals<T>, T, Equals.Params<T>> =
+    errorMessage: LazyErrorMessage<Equals<T>, T> =
+        { "Value must equal to ${context.params.other}" },
+): ValidationRule<Equals<T>, T> =
     Equals(other).toValidationRule(errorMessage)
 
-class IsDifferent<V>(private val other: V) : Check<V, IsDifferent.Params<V>, IsDifferent<V>> {
+class IsDifferent<V>(private val other: V) :
+    ParameterizedCheck<V, IsDifferent.Params<V>>
+{
     override val params = Params(other)
 
     override suspend fun invoke(value: V): Boolean =
         value != other
 
-    data class Params<V>(val other: V) : Check.Params<IsDifferent<V>>()
+    data class Params<V>(val other: V) : ParamsOf<IsDifferent<V>, Params<V>>
 }
 
 fun <T> ValidationRules<T>.differentThan(
     other: T,
-    errorMessage: LazyErrorMessage<IsDifferent<T>, T, IsDifferent.Params<T>> =
-        { "Value must be different than ${validationParams.other}" },
-): ValidationRule<IsDifferent<T>, T, IsDifferent.Params<T>> =
+    errorMessage: LazyErrorMessage<IsDifferent<T>, T> =
+        { "Value must be different than ${context.params.other}" },
+): ValidationRule<IsDifferent<T>, T> =
     IsDifferent(other).toValidationRule(errorMessage)

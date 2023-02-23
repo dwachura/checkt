@@ -7,49 +7,53 @@ package io.dwsoft.checkt.core
  * Custom validation rules should be defined as an extensions of
  * [validation rules "namespace"][ValidationRules].
  */
-class ValidationRule<C : Check<V, P, C>, in V, P : Check.Params<C>> private constructor(
+class ValidationRule<C : Check<V>, in V> private constructor(
     val check: C,
-    val errorMessage: LazyErrorMessage<C, out V, P>,
+    val errorMessage: LazyErrorMessage<C, out V>,
+    private val validationContext: (ValidationPath) -> ValidationContext<C>,
 ) {
-    suspend fun verify(value: V): LazyViolation<C, @UnsafeVariance V, P> =
+    suspend fun verify(value: V): LazyViolation<C, @UnsafeVariance V> =
         { validationPath ->
             when (check(value)) {
                 false -> {
-                    val msg = ErrorMessageBuilderContext(value, validationPath, check).errorMessage()
-                    val errorContext = Violation.Context(check, validationPath)
-                    Violation(value, errorContext, msg)
+                    val context = validationContext(validationPath)
+                    val msg = ErrorMessageBuilderContext(value, context).errorMessage()
+                    Violation(value, context, msg)
                 }
                 true -> null
             }
         }
 
     companion object : ValidationRules<Any?> {
-        fun <C : Check<V, P, C>, V, P : Check.Params<C>> create(
+        fun <C : Check<V>, V> create(
             check: C,
-            errorMessage: LazyErrorMessage<C, V, P>,
-        ): ValidationRule<C, V, P> =
-            ValidationRule(check, errorMessage)
+            errorMessage: LazyErrorMessage<C, V>,
+        ): ValidationRule<C, V> =
+            ValidationRule(check, errorMessage) { validationPath ->
+                ValidationContext.create(check, validationPath)
+            }
+
+        fun <C : ParameterizedCheck<V, P>, V, P : ParamsOf<C, P>> create(
+            check: C,
+            errorMessage: LazyErrorMessage<C, V>,
+        ): ValidationRule<C, V> =
+            ValidationRule(check, errorMessage) { validationPath ->
+                ValidationContext.create(check, validationPath)
+            }
     }
 }
 
-class ErrorMessageBuilderContext<C : Check<V, P, C>, V, P : Check.Params<C>>
-internal constructor(
+class ErrorMessageBuilderContext<C : Check<V>, V>(
     val value: V,
-    val validationPath: ValidationPath,
-    check: C,
+    val context: ValidationContext<C>
 ) {
-    val violatedCheck: Check.Key<C> = check.key
-    val validationParams: P = check.params
-
     operator fun ValidationPath.invoke(separator: String = "."): String =
-        validationPath.joinToString { acc, str -> "$acc$separator$str" }
+        joinToString { acc, str -> "$acc$separator$str" }
 }
 
-typealias LazyErrorMessage<C, V, P> =
-        ErrorMessageBuilderContext<C, out V, P>.() -> String
+typealias LazyErrorMessage<C, V> = ErrorMessageBuilderContext<C, out V>.() -> String
 
-typealias LazyViolation<C, V, P> =
-        suspend (ValidationPath) -> Violation<C, V, P>?
+typealias LazyViolation<C, V> = suspend (ValidationPath) -> Violation<C, V>?
 
 /**
  * "Namespace" introduced to provide common and easy access to
@@ -59,15 +63,17 @@ typealias LazyViolation<C, V, P> =
  * of this interface.
  */
 sealed interface ValidationRules<V> {
-    fun <T> rule(
-        block: ValidationRules<T>.() -> ValidationRule<*, T, *>
-    ): ValidationRule<*, T, *> = rulesFor<T>().block()
+    fun <T> rule(block: ValidationRules<T>.() -> ValidationRule<*, T>): ValidationRule<*, T> =
+        rulesFor<T>().block()
 
     @Suppress("UNCHECKED_CAST")
     fun <T> rulesFor(): ValidationRules<T> = this as ValidationRules<T>
 
-    fun <C : Check<V, P, C>, P : Check.Params<C>> C.toValidationRule(
-        errorMessage: LazyErrorMessage<C, V, P>
-    ): ValidationRule<C, V, P> =
+    fun <C> C.toValidationRule(errorMessage: LazyErrorMessage<C, V>): ValidationRule<C, V>
+            where C : Check<V> =
+        ValidationRule.create(this, errorMessage)
+
+    fun <C, P> C.toValidationRule(errorMessage: LazyErrorMessage<C, V>): ValidationRule<C, V>
+            where C : ParameterizedCheck<V, P>, P : ParamsOf<C, P> =
         ValidationRule.create(this, errorMessage)
 }

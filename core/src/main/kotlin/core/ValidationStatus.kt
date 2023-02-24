@@ -33,7 +33,7 @@ sealed class ValidationStatus {
 fun List<Violation<*, *>>.toValidationStatus(): ValidationStatus =
     if (this.isEmpty()) Valid else Invalid(this)
 
-fun <C : Check<V>, V>
+fun <C : Check<*>, V>
         Violation<C, V>?.toValidationStatus(): ValidationStatus =
     when (this) {
         null -> emptyList()

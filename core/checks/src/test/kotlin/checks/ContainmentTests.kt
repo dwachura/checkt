@@ -29,22 +29,22 @@ class ContainmentTests : FreeSpec({
         forAll(containmentCases()) {
             "Check works" {
                 when {
-                    collection containsAnyOf expectedElements ->
-                        collection shouldPass ContainsAny(expectedElements)
-                    else -> collection shouldNotPass ContainsAny(expectedElements)
+                    collection containsAnyOf other ->
+                        collection shouldPass ContainsAny(other)
+                    else -> collection shouldNotPass ContainsAny(other)
                 }
             }
 
             "Rule works" {
                 testValidation(
                     of = collection,
-                    with = validation { +containsAnyOf(expectedElements) }
+                    with = validation { +containsAnyOf(other) }
                 ) {
                     when {
-                        collection containsAnyOf expectedElements -> result.shouldBeValid()
+                        collection containsAnyOf other -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
                             validated.violated<ContainsAny<*>> { msg ->
-                                msg shouldContain "Value must contain any of $expectedElements"
+                                msg shouldContain "Value must contain any of ${other.toSet()}"
                             }
                         )
                     }
@@ -57,23 +57,106 @@ class ContainmentTests : FreeSpec({
         forAll(containmentCases()) {
             "Check works" {
                 when {
-                    collection containsAllOf expectedElements ->
-                        collection shouldPass ContainsAll(expectedElements)
+                    collection containsAllOf other ->
+                        collection shouldPass ContainsAll(other)
                     else ->
-                        collection shouldNotPass ContainsAll(expectedElements)
+                        collection shouldNotPass ContainsAll(other)
                 }
             }
 
             "Rule works" {
                 testValidation(
                     of = collection,
-                    with = validation { +containsAllOf(expectedElements) }
+                    with = validation { +containsAllOf(other) }
                 ) {
                     when {
-                        collection containsAllOf expectedElements -> result.shouldBeValid()
+                        collection containsAllOf other -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
                             validated.violated<ContainsAll<*>> { msg ->
-                                msg shouldContain "Value must contain all of $expectedElements"
+                                msg shouldContain "Value must contain all of $other"
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    "${ContainsNone::class.simpleName}" - {
+        forAll(containmentCases()) {
+            "Check works" {
+                when {
+                    collection containsNoneOf other ->
+                        collection shouldPass ContainsNone(other)
+                    else ->
+                        collection shouldNotPass ContainsNone(other)
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = collection,
+                    with = validation { +containsNoneOf(other) }
+                ) {
+                    when {
+                        collection containsNoneOf other -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<ContainsNone<*>> { msg ->
+                                msg shouldContain "Value must not contain any of ${other.toSet()}"
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    "${ContainsAnything::class.simpleName}" - {
+        forAll(containmentCases()) {
+            "Check works" {
+                when {
+                    collection.isNotEmpty() -> collection shouldPass ContainsAnything
+                    else -> collection shouldNotPass ContainsAnything
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = collection,
+                    with = validation { +containsAnything() }
+                ) {
+                    when {
+                        collection.isNotEmpty() -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<ContainsAnything> { msg ->
+                                msg shouldContain "Value must contain anything"
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    "${ContainsNothing::class.simpleName}" - {
+        forAll(containmentCases()) {
+            "Check works" {
+                when {
+                    collection.isEmpty() -> collection shouldPass ContainsNothing
+                    else -> collection shouldNotPass ContainsNothing
+                }
+            }
+
+            "Rule works" {
+                testValidation(
+                    of = collection,
+                    with = validation { +containsNothing() }
+                ) {
+                    when {
+                        collection.isEmpty() -> result.shouldBeValid()
+                        else -> result.shouldBeInvalidBecause(
+                            validated.violated<ContainsNothing> { msg ->
+                                msg shouldContain "Value must not contain any elements"
                             }
                         )
                     }
@@ -87,7 +170,7 @@ private fun containmentCases(): Gen<ContainmentCase> {
     val casesForNotEmptyElementCollection = containmentCasesFor(anyCollection())
     val casesForEmptyElementCollection =
         casesForNotEmptyElementCollection
-            .map { it.copy(expectedElements = emptyList()) }
+            .map { it.copy(other = emptyList()) }
     return casesForNotEmptyElementCollection.merge(casesForEmptyElementCollection)
 }
 
@@ -138,7 +221,10 @@ private infix fun <T> Collection<T>.containsAllOf(other: Collection<T>): Boolean
         }
     }
 
+private infix fun <T> Collection<T>.containsNoneOf(other: Collection<T>): Boolean =
+    other.none { it in this }
+
 private data class ContainmentCase(
     val collection: Collection<Any>,
-    val expectedElements: Collection<Any>,
+    val other: Collection<Any>,
 )

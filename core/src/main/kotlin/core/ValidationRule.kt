@@ -7,14 +7,15 @@ package io.dwsoft.checkt.core
  * Custom validation rules should be defined as an extensions of
  * [validation rules "namespace"][ValidationRules].
  */
-class ValidationRule<C : Check<V>, in V> private constructor(
+class ValidationRule<in V, C : Check<*>> private constructor(
     val check: C,
     val errorMessage: LazyErrorMessage<C, out V>,
+    private val applyCheck: suspend (V, C) -> Boolean,
     private val validationContext: (ValidationPath) -> ValidationContext<C>,
 ) {
     suspend fun verify(value: V): LazyViolation<C, @UnsafeVariance V> =
         { validationPath ->
-            when (check(value)) {
+            when (applyCheck(value, check)) {
                 false -> {
                     val context = validationContext(validationPath)
                     val msg = ErrorMessageBuilderContext(value, context).errorMessage()
@@ -25,25 +26,35 @@ class ValidationRule<C : Check<V>, in V> private constructor(
         }
 
     companion object : ValidationRules<Any?> {
-        fun <C : Check<V>, V> create(
+        fun <C : Check<T>, V, T> create(
             check: C,
             errorMessage: LazyErrorMessage<C, V>,
-        ): ValidationRule<C, V> =
-            ValidationRule(check, errorMessage) { validationPath ->
+            transform: (V) -> T,
+        ): ValidationRule<V, C> =
+            create(check, errorMessage, transform) { validationPath ->
                 ValidationContext.create(check, validationPath)
             }
 
-        fun <C : ParameterizedCheck<V, P>, V, P : ParamsOf<C, P>> create(
+        fun <C : ParameterizedCheck<T, P>, V, P : ParamsOf<C, P>, T> create(
             check: C,
             errorMessage: LazyErrorMessage<C, V>,
-        ): ValidationRule<C, V> =
-            ValidationRule(check, errorMessage) { validationPath ->
+            transform: (V) -> T,
+        ): ValidationRule<V, C> =
+            create(check, errorMessage, transform) { validationPath ->
                 ValidationContext.create(check, validationPath)
             }
+
+        private fun <C : Check<T>, V, T> create(
+            check: C,
+            errorMessage: LazyErrorMessage<C, V>,
+            transform: (V) -> T,
+            validationContext: (ValidationPath) -> ValidationContext<C>,
+        ): ValidationRule<V, C> =
+            ValidationRule(check, errorMessage, { v, c -> c(transform(v)) }, validationContext)
     }
 }
 
-class ErrorMessageBuilderContext<C : Check<V>, V>(
+class ErrorMessageBuilderContext<C : Check<*>, V>(
     val value: V,
     val context: ValidationContext<C>
 ) {
@@ -62,18 +73,21 @@ typealias LazyViolation<C, V> = suspend (ValidationPath) -> Violation<C, V>?
  * All custom rule factories functions should be defined as an extensions
  * of this interface.
  */
-sealed interface ValidationRules<V> {
-    fun <T> rule(block: ValidationRules<T>.() -> ValidationRule<*, T>): ValidationRule<*, T> =
+sealed interface ValidationRules<out V> {
+    fun <T> rule(block: ValidationRules<T>.() -> ValidationRule<T, *>):
+            ValidationRule<T, *> =
         rulesFor<T>().block()
 
     @Suppress("UNCHECKED_CAST")
     fun <T> rulesFor(): ValidationRules<T> = this as ValidationRules<T>
 
-    fun <C> C.toValidationRule(errorMessage: LazyErrorMessage<C, V>): ValidationRule<C, V>
+    fun <C> C.toValidationRule(errorMessage: LazyErrorMessage<C, V>):
+            ValidationRule<@UnsafeVariance V, C>
             where C : Check<V> =
-        ValidationRule.create(this, errorMessage)
+        ValidationRule.create(this, errorMessage) { it }
 
-    fun <C, P> C.toValidationRule(errorMessage: LazyErrorMessage<C, V>): ValidationRule<C, V>
+    fun <C, P> C.toValidationRule(errorMessage: LazyErrorMessage<C, V>):
+            ValidationRule<@UnsafeVariance V, C>
             where C : ParameterizedCheck<V, P>, P : ParamsOf<C, P> =
-        ValidationRule.create(this, errorMessage)
+        ValidationRule.create(this, errorMessage) { it }
 }

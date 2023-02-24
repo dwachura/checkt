@@ -21,8 +21,8 @@ class NullabilityTests : FreeSpec({
         forAll(nullabilityCases()) {
             "Check works" {
                 when {
-                    value != null -> value shouldPass NotNull()
-                    else -> value shouldNotPass NotNull()
+                    value != null -> value shouldPass NotNull
+                    else -> value shouldNotPass NotNull
                 }
             }
 
@@ -34,7 +34,7 @@ class NullabilityTests : FreeSpec({
                     when {
                         value != null -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
-                            validated.violated<NotNull<*>> { msg ->
+                            validated.violated<NotNull> { msg ->
                                 msg shouldContain "Value must not be null"
                             }
                         )
@@ -48,8 +48,8 @@ class NullabilityTests : FreeSpec({
         forAll(nullabilityCases()) {
             "Check works" {
                 when {
-                    value != null -> value shouldNotPass IsNull()
-                    else -> value shouldPass IsNull()
+                    value != null -> value shouldNotPass IsNull
+                    else -> value shouldPass IsNull
                 }
             }
 
@@ -61,7 +61,7 @@ class NullabilityTests : FreeSpec({
                     when (value) {
                         null -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
-                            validated.violated<IsNull<*>> { msg ->
+                            validated.violated<IsNull> { msg ->
                                 msg shouldContain "Value must be null"
                             }
                         )
@@ -83,7 +83,7 @@ class NullabilityTests : FreeSpec({
             ) {
                 when (value) {
                     null -> result.shouldBeInvalidBecause(
-                        validated.violated<NotNull<*>>(withMessage = "1")
+                        validated.violated<NotNull>(withMessage = "1")
                     )
 
                     else -> result.shouldBeInvalidBecause(

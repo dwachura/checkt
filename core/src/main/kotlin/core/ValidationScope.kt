@@ -50,7 +50,7 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
      */
     suspend fun <C : Check<V>, V> verifyValue(
         value: V,
-        rule: ValidationRule<C, V>,
+        rule: ValidationRule<V, C>,
     ): ValidationStatus =
         rule.verify(value)(validationPath)
             .toValidationStatus()

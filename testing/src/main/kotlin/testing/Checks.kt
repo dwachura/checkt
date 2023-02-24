@@ -3,6 +3,7 @@ package io.dwsoft.checkt.testing
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ParameterizedCheck
+import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
 import io.dwsoft.checkt.core.key
 import io.kotest.assertions.asClue
@@ -29,11 +30,12 @@ val <T> ValidationRules<T>.fail
 
 fun <T> ValidationRules<T>.failWithMessage(
     errorMessage: LazyErrorMessage<AlwaysFailingCheck, Any?>
-) = AlwaysFailingCheck.toValidationRule(errorMessage)
+): ValidationRule<T, AlwaysFailingCheck> =
+    AlwaysFailingCheck.toValidationRule(errorMessage)
 
-object AlwaysFailingCheck : Check<Any?> by Check.delegate({ false })
+object AlwaysFailingCheck : Check<Any?> by Check({ false })
 
 val <T> ValidationRules<T>.pass
     get() = AlwaysPassingCheck.toValidationRule { "" }
 
-object AlwaysPassingCheck : Check<Any?>  by Check.delegate({ true })
+object AlwaysPassingCheck : Check<Any?> by Check({ true })

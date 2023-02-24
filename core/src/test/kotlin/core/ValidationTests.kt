@@ -147,8 +147,7 @@ class ValidationTests : FreeSpec({
         val expectedException = RuntimeException("error")
 
         "Exceptions thrown by validation rules are caught" {
-            class ThrowingCheck(val ex: Throwable) :
-                Check<Any> by Check.delegate({ throw ex })
+            class ThrowingCheck(val ex: Throwable) : Check<Any> by Check({ throw ex })
 
             val spec = validation<Dto> {
                 the::simpleValue require {

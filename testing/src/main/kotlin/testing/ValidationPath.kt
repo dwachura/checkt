@@ -24,7 +24,7 @@ fun ValidationPath.toList(): List<Element> =
     (tail?.toList() ?: emptyList()) + head
 
 fun ValidationPath.shouldContainElements(vararg expected: Element) =
-    this.shouldContainElements(expected.toList())
+    shouldContainElements(expected.toList())
 
 typealias ValidationPathBuilder = ValidationPathBuildingScope.() -> ValidationPath
 

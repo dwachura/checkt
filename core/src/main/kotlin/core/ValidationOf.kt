@@ -51,7 +51,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      * Checks the [currently validated value][subject] against given
      * [validation rule][this].
      */
-    suspend operator fun <C> ValidationRule<C, V>.unaryPlus(): ValidationStatus
+    suspend operator fun <C> ValidationRule<V, C>.unaryPlus(): ValidationStatus
             where C : Check<V> =
         with(internalsGate) {
             scope.verifyValue(subject, this@unaryPlus)
@@ -218,13 +218,13 @@ typealias ValidationBlock<T> = suspend ValidationOf<T>.() -> Unit
 
 typealias ValidationBlock1<T, T2> = suspend ValidationOf<T>.(T2) -> Unit
 
-private val <T> ValidationOf<T>.internalsGate: ValidationOf.Internals<T>
-    get() = this as ValidationOf.Internals<T>
+private val <T> ValidationOf<T>.internalsGate: Internals<T>
+    get() = this as Internals<T>
 
 private class ValidationOfInternal<V>(
     subject: V,
     scope: ValidationScope
-) : ValidationOf.Internals<V>(subject, scope)
+) : Internals<V>(subject, scope)
 
 private fun <T> ValidationScope.toValidationOf(value: T): ValidationOf<T> =
     ValidationOfInternal(value, this)

@@ -7,26 +7,23 @@ import io.dwsoft.checkt.core.ParamsOf
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
 import io.dwsoft.checkt.core.and
-import io.dwsoft.checkt.core.params
 
 class ContainsAny<V>(elements: Collection<V>) :
     ParameterizedCheck<Collection<V>, ContainsAny.Params<V>> by (
             Params(elements.toSet()) and { it.intersect(this.elements).isNotEmpty() }
-    )
-{
+            ) {
     data class Params<V>(val elements: Set<V>) : ParamsOf<ContainsAny<V>, Params<V>>
 }
 
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAnyOf(
     elements: T2,
     errorMessage: LazyErrorMessage<ContainsAny<T>, T2> =
-        { "Value must contain any of ${context.params.elements}" },
+        { "Collection must contain any of elements specified" },
 ): ValidationRule<T2, ContainsAny<T>> =
     ContainsAny(elements).toValidationRule(errorMessage)
 
 class ContainsAll<V>(elements: Collection<V>) :
-    ParameterizedCheck<Collection<V>, ContainsAll.Params<V>>
-{
+    ParameterizedCheck<Collection<V>, ContainsAll.Params<V>> {
     override val params = Params(elements)
     private val elementQuantities = countDistinct(elements)
 
@@ -51,22 +48,21 @@ class ContainsAll<V>(elements: Collection<V>) :
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAllOf(
     elements: T2,
     errorMessage: LazyErrorMessage<ContainsAll<T>, T2> =
-        { "Value must contain all of ${context.params.elements}" },
+        { "Collection must contain all of elements specified" },
 ): ValidationRule<T2, ContainsAll<T>> =
     ContainsAll(elements).toValidationRule(errorMessage)
 
 class ContainsNone<V>(elements: Collection<V>) :
     ParameterizedCheck<Collection<V>, ContainsNone.Params<V>> by (
             Params(elements.toSet()) and { it.intersect(this.elements).isEmpty() }
-    )
-{
+            ) {
     data class Params<V>(val elements: Set<V>) : ParamsOf<ContainsNone<V>, Params<V>>
 }
 
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsNoneOf(
     elements: T2,
     errorMessage: LazyErrorMessage<ContainsNone<T>, T2> =
-        { "Value must not contain any of ${context.params.elements}" },
+        { "Collection must not contain any of elements specified" },
 ): ValidationRule<T2, ContainsNone<T>> =
     ContainsNone(elements).toValidationRule(errorMessage)
 
@@ -74,7 +70,7 @@ object ContainsAnything : Check<Collection<*>> by Check({ it.isNotEmpty() })
 
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAnything(
     errorMessage: LazyErrorMessage<ContainsAnything, T2> =
-        { "Value must contain anything" },
+        { "Collection must contain anything" },
 ): ValidationRule<T2, ContainsAnything> =
     ContainsAnything.toValidationRule(errorMessage)
 
@@ -82,8 +78,45 @@ object ContainsNothing : Check<Collection<*>> by Check({ it.isEmpty() })
 
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsNothing(
     errorMessage: LazyErrorMessage<ContainsNothing, T2> =
-        { "Value must not contain any elements" },
+        { "Collection must not contain any elements" },
 ): ValidationRule<T2, ContainsNothing> =
     ContainsNothing.toValidationRule(errorMessage)
 
+// TODO: test + move to other file
 
+class NotEmpty<V : Any> private constructor() : Check<V> by Check({
+    when (it) {
+        is String -> it.isEmpty()
+        is Collection<*> -> it.isEmpty()
+        is Array<*> -> it.isEmpty()
+        else -> throw IllegalArgumentException(
+            "Unsupported type: ${it::class.qualifiedName}"
+        )
+    }
+}) {
+    companion object {
+        fun text(): NotEmpty<CharSequence> = NotEmpty()
+
+        fun <T> collectionOf(): NotEmpty<Collection<T>> = NotEmpty()
+
+        fun <T> arrayOf(): NotEmpty<Array<T>> = NotEmpty()
+    }
+}
+
+fun ValidationRules<CharSequence>.notEmpty(
+    errorMessage: LazyErrorMessage<NotEmpty<CharSequence>, CharSequence> =
+        { "Value must not be empty" },
+) : ValidationRule<CharSequence, NotEmpty<CharSequence>> =
+    NotEmpty.text().toValidationRule(errorMessage)
+
+fun <T> ValidationRules<Collection<T>>.notEmpty(
+    errorMessage: LazyErrorMessage<NotEmpty<Collection<T>>, Collection<T>> =
+        { "Collection must not be empty" },
+) : ValidationRule<Collection<T>, NotEmpty<Collection<T>>> =
+    NotEmpty.collectionOf<T>().toValidationRule(errorMessage)
+
+fun <T> ValidationRules<Array<T>>.notEmpty(
+    errorMessage: LazyErrorMessage<NotEmpty<Array<T>>, Array<T>> =
+        { "Array must not be empty" },
+) : ValidationRule<Array<T>, NotEmpty<Array<T>>> =
+    NotEmpty.arrayOf<T>().toValidationRule(errorMessage)

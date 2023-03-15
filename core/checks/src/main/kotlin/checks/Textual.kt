@@ -8,14 +8,6 @@ import io.dwsoft.checkt.core.params
 
 // TODO: tests
 
-object NotEmpty : Check<CharSequence> by Check({ it.isNotEmpty() })
-
-fun ValidationRules<CharSequence>.notEmpty(
-    errorMessage: LazyErrorMessage<NotEmpty, CharSequence> =
-        { "Value must not be empty" },
-) : ValidationRule<CharSequence, NotEmpty> =
-    NotEmpty.toValidationRule(errorMessage)
-
 object NotBlank : Check<CharSequence> by Check({ it.isNotBlank() })
 
 fun ValidationRules<CharSequence>.notBlank(

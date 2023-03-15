@@ -44,7 +44,7 @@ class ContainmentTests : FreeSpec({
                         collection containsAnyOf other -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
                             validated.violated<ContainsAny<*>> { msg ->
-                                msg shouldContain "Value must contain any of ${other.toSet()}"
+                                msg shouldContain "Collection must contain any of elements specified"
                             }
                         )
                     }
@@ -73,7 +73,7 @@ class ContainmentTests : FreeSpec({
                         collection containsAllOf other -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
                             validated.violated<ContainsAll<*>> { msg ->
-                                msg shouldContain "Value must contain all of $other"
+                                msg shouldContain "Collection must contain all of elements specified"
                             }
                         )
                     }
@@ -102,7 +102,7 @@ class ContainmentTests : FreeSpec({
                         collection containsNoneOf other -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
                             validated.violated<ContainsNone<*>> { msg ->
-                                msg shouldContain "Value must not contain any of ${other.toSet()}"
+                                msg shouldContain "Collection must not contain any of elements specified"
                             }
                         )
                     }
@@ -129,7 +129,7 @@ class ContainmentTests : FreeSpec({
                         collection.isNotEmpty() -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
                             validated.violated<ContainsAnything> { msg ->
-                                msg shouldContain "Value must contain anything"
+                                msg shouldContain "Collection must contain anything"
                             }
                         )
                     }
@@ -156,7 +156,7 @@ class ContainmentTests : FreeSpec({
                         collection.isEmpty() -> result.shouldBeValid()
                         else -> result.shouldBeInvalidBecause(
                             validated.violated<ContainsNothing> { msg ->
-                                msg shouldContain "Value must not contain any elements"
+                                msg shouldContain "Collection must not contain any elements"
                             }
                         )
                     }

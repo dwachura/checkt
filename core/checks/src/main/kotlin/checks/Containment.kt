@@ -22,13 +22,15 @@ fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAnyOf(
 ): ValidationRule<T2, ContainsAny<T>> =
     ContainsAny(elements).toValidationRule(errorMessage)
 
-class ContainsAll<V>(elements: Collection<V>) :
+class ContainsAll<V>(private val elements: Collection<V>) :
     ParameterizedCheck<Collection<V>, ContainsAll.Params<V>> {
-    override val params = Params(elements)
     private val elementQuantities = countDistinct(elements)
 
-    override suspend fun invoke(value: Collection<V>): Boolean =
-        value.containsAllElements()
+    override suspend fun invoke(value: Collection<V>) =
+        ParameterizedCheck.Result(
+            value.containsAllElements(),
+            Params(elements)
+        )
 
     private fun Collection<V>.containsAllElements(): Boolean =
         countDistinct(this).let { validatedElementQuantities ->
@@ -103,18 +105,21 @@ class NotEmpty<V : Any> private constructor() : Check<V> by Check({
     }
 }
 
+@JvmName("notEmptyCharSequence")
 fun ValidationRules<CharSequence>.notEmpty(
     errorMessage: LazyErrorMessage<NotEmpty<CharSequence>, CharSequence> =
         { "Value must not be empty" },
 ) : ValidationRule<CharSequence, NotEmpty<CharSequence>> =
     NotEmpty.text().toValidationRule(errorMessage)
 
+@JvmName("notEmptyCollection")
 fun <T> ValidationRules<Collection<T>>.notEmpty(
     errorMessage: LazyErrorMessage<NotEmpty<Collection<T>>, Collection<T>> =
         { "Collection must not be empty" },
 ) : ValidationRule<Collection<T>, NotEmpty<Collection<T>>> =
     NotEmpty.collectionOf<T>().toValidationRule(errorMessage)
 
+@JvmName("notEmptyArray")
 fun <T> ValidationRules<Array<T>>.notEmpty(
     errorMessage: LazyErrorMessage<NotEmpty<Array<T>>, Array<T>> =
         { "Array must not be empty" },

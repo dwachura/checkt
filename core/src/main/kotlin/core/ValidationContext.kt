@@ -5,13 +5,16 @@ sealed interface ValidationContext<C : Check<*>> {
     val path: ValidationPath
 
     companion object {
-        fun <C> create(check: C, validationPath: ValidationPath): ValidationContext<C>
+        fun <C> create(key: Check.Key<C>, validationPath: ValidationPath): ValidationContext<C>
                 where C : Check<*> =
-            Parameterless(check.key, validationPath)
+            Parameterless(key, validationPath)
 
-        fun <C, P> create(check: C, validationPath: ValidationPath): ValidationContext<C>
-                where C : ParameterizedCheck<*, P>, P : ParamsOf<C, P> =
-            Parameterized(check.key, check.params, validationPath)
+        fun <C: ParameterizedCheck<*, P>, P : ParamsOf<C, P>> create(
+            key: Check.Key<C>,
+            params: P,
+            validationPath: ValidationPath
+        ): ValidationContext<C> =
+            Parameterized(key, params, validationPath)
     }
 }
 

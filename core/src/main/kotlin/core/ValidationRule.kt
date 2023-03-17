@@ -10,20 +10,10 @@ package io.dwsoft.checkt.core
 class ValidationRule<in V, C : Check<*>> private constructor(
     val check: C,
     val errorMessage: LazyErrorMessage<C, out V>,
-    private val applyCheck: suspend (V, C) -> Boolean,
-    private val validationContext: (ValidationPath) -> ValidationContext<C>,
+    private val applyCheck: suspend ValidationRule<V, C>.(V) -> LazyViolation<C, V>,
 ) {
     suspend fun verify(value: V): LazyViolation<C, @UnsafeVariance V> =
-        { validationPath ->
-            when (applyCheck(value, check)) {
-                false -> {
-                    val context = validationContext(validationPath)
-                    val msg = ErrorMessageBuilderContext(value, context).errorMessage()
-                    Violation(value, context, msg)
-                }
-                true -> null
-            }
-        }
+        { validationPath -> applyCheck(value)(validationPath) }
 
     companion object : ValidationRules<Any?> {
         fun <C : Check<T>, V, T> create(
@@ -31,8 +21,16 @@ class ValidationRule<in V, C : Check<*>> private constructor(
             errorMessage: LazyErrorMessage<C, V>,
             transform: (V) -> T,
         ): ValidationRule<V, C> =
-            create(check, errorMessage, transform) { validationPath ->
-                ValidationContext.create(check, validationPath)
+            ValidationRule(check, errorMessage) { value ->
+                val result = check(transform(value))
+                return@ValidationRule { validationPath: ValidationPath ->
+                    result.takeUnless { it.passed }
+                        ?.let {
+                            val context = ValidationContext.create(check.key, validationPath)
+                            val msg = ErrorMessageBuilderContext(value, context).errorMessage()
+                            Violation(value, context, msg)
+                        }
+                }
             }
 
         fun <C : ParameterizedCheck<T, P>, V, P : ParamsOf<C, P>, T> create(
@@ -40,17 +38,17 @@ class ValidationRule<in V, C : Check<*>> private constructor(
             errorMessage: LazyErrorMessage<C, V>,
             transform: (V) -> T,
         ): ValidationRule<V, C> =
-            create(check, errorMessage, transform) { validationPath ->
-                ValidationContext.create(check, validationPath)
+            ValidationRule(check, errorMessage) { value ->
+                val result = check(transform(value))
+                return@ValidationRule { validationPath: ValidationPath ->
+                    result.takeUnless { it.passed }
+                        ?.let {
+                            val context = ValidationContext.create(check.key, it.params, validationPath)
+                            val msg = ErrorMessageBuilderContext(value, context).errorMessage()
+                            Violation(value, context, msg)
+                        }
+                }
             }
-
-        private fun <C : Check<T>, V, T> create(
-            check: C,
-            errorMessage: LazyErrorMessage<C, V>,
-            transform: (V) -> T,
-            validationContext: (ValidationPath) -> ValidationContext<C>,
-        ): ValidationRule<V, C> =
-            ValidationRule(check, errorMessage, { v, c -> c(transform(v)) }, validationContext)
     }
 }
 

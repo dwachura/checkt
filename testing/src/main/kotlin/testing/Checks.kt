@@ -11,18 +11,28 @@ import io.kotest.matchers.shouldBe
 
 suspend infix fun <T> T.shouldPass(check: Check<T>) =
     "Value '$this' should pass check ${check.key.fullIdentifier}".asClue {
-        val assertion = suspend { check(this) shouldBe true }
-        (check as? ParameterizedCheck<*, *>)?.params?.asClue {
-            assertion()
-        } ?: assertion()
+        val assertion: (Check.Result) -> Unit =
+            { it.passed shouldBe true }
+        when (check) {
+            is ParameterizedCheck<T, *> -> {
+                val result = check(this)
+                result.params.asClue { assertion(result) }
+            }
+            else -> assertion(check(this))
+        }
     }
 
 suspend infix fun <T> T.shouldNotPass(check: Check<T>) =
     "Value '$this' should not pass check ${check.key.fullIdentifier}".asClue {
-        val assertion = suspend { check(this) shouldBe false }
-        (check as? ParameterizedCheck<*, *>)?.params?.asClue {
-            assertion()
-        } ?: assertion()
+        val assertion: (Check.Result) -> Unit =
+            { it.passed shouldBe false }
+        when (check) {
+            is ParameterizedCheck<T, *> -> {
+                val result = check(this)
+                result.params.asClue { assertion(result) }
+            }
+            else -> assertion(check(this))
+        }
     }
 
 val <T> ValidationRules<T>.fail

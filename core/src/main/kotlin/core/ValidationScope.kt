@@ -48,7 +48,7 @@ class ValidationScope(val validationPath: ValidationPath = ValidationPath()) {
      * Eventual [violation][Violation] is saved into internal structures of
      * a scope and returned.
      */
-    suspend fun <C : Check<V>, V> verifyValue(
+    suspend fun <C : Check<*>, V> verifyValue(
         value: V,
         rule: ValidationRule<V, C>,
     ): ValidationStatus =

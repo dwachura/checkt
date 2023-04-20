@@ -52,7 +52,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      * [validation rule][this].
      */
     suspend operator fun <C> ValidationRule<V, C>.unaryPlus(): ValidationStatus
-            where C : Check<V> =
+            where C : Check<*> =
         with(internalsGate) {
             scope.verifyValue(subject, this@unaryPlus)
         }

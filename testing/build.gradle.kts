@@ -9,4 +9,5 @@ dependencies {
     api(Dependencies.`kotest-assertions-core`)
     api(Dependencies.`kotest-property`)
     api(Dependencies.mockk)
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines:0.19.2")
 }

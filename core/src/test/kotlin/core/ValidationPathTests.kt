@@ -36,6 +36,22 @@ class ValidationPathTests : FreeSpec({
 
             joined shouldBe "$root | $separator | seg1[0][key]"
         }
+
+        "...without including root" {
+            forAll(
+                row(ValidationPath() + !"seg1", "seg1"),
+                row(ValidationPath() + (!"key").asKey(), "$root[key]"),
+                row(ValidationPath() + 0.asIndex(), "$root[0]"),
+                row(ValidationPath(!"seg1") + (!"key").asKey(), "seg1[key]"),
+                row(ValidationPath(!"seg1") + 0.asIndex(), "seg1[0]"),
+                row(ValidationPath(!"seg1") + 0.asIndex() + 1.asIndex(), "seg1[0][1]"),
+                row(ValidationPath(!"seg1") + 0.asIndex() + !"seg2", "seg1[0].seg2")
+            ) { path: ValidationPath, expected: String ->
+                val joined = path.joinToString(includeRoot = false)
+
+                joined shouldBe expected
+            }
+        }
     }
 
     "Last sub-path is returned" {

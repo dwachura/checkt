@@ -1,10 +1,7 @@
 package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Element
-import io.dwsoft.checkt.core.ValidationPath.Element.Index
-import io.dwsoft.checkt.core.ValidationPath.Element.Key
-import io.dwsoft.checkt.core.ValidationPath.Element.Segment
-import io.dwsoft.checkt.core.ValidationPath.Element.NumericIndex
+import io.dwsoft.checkt.core.ValidationPath.Element.*
 
 sealed interface ValidationPath {
     val head: Element
@@ -14,8 +11,7 @@ sealed interface ValidationPath {
         val value: String
 
         data class Segment(val rawValue: NotBlankString) : Element {
-            override val value: String
-                get() = rawValue.value
+            override val value: String = rawValue.value
         }
 
         sealed interface Index : Element
@@ -43,7 +39,7 @@ sealed interface ValidationPath {
 
 private object Root : Element {
     override val value: String
-        get() = Checkt.Settings.ValidationPath.rootDisplayedAs
+        get() = Checkt.Settings.ValidationPath.rootDisplayedAs.value
 }
 
 private data class ValidationPathInternal(
@@ -63,22 +59,26 @@ fun Int.asIndex(): NumericIndex = NumericIndex(this)
 fun NotBlankString.asKey(): Key = Key(this)
 
 fun ValidationPath.joinToString(
+    includeRoot: Boolean = true,
     joiner: (String, String) -> String = { s1, s2 -> "$s1.$s2" }
 ): String =
     tail?.let {
-        val tailDisplay = it.joinToString(joiner)
+        val tailDisplay = it.joinToString(includeRoot, joiner)
         val headDisplay = head.value
-        when (head) {
-            is Index -> "$tailDisplay$headDisplay"
+        when {
+            head is Index -> "$tailDisplay$headDisplay"
+            isTailRoot() && !includeRoot -> headDisplay
             else -> joiner(tailDisplay, headDisplay)
         }
     } ?: head.value
 
 fun ValidationPath.lastSubPath(): String =
-    when(head) {
+    when (head) {
         is Index -> (tail?.lastSubPath() ?: "") + head.value
         else -> head.value
     }
+
+private fun ValidationPath.isTailRoot(): Boolean = tail?.head is Root
 
 operator fun ValidationPath.iterator(): Iterator<ValidationPath> =
     object : Iterator<ValidationPath> {
@@ -88,7 +88,7 @@ operator fun ValidationPath.iterator(): Iterator<ValidationPath> =
     }
 
 object ValidationPathSettings {
-    var rootDisplayedAs = "$"
+    var rootDisplayedAs: NotBlankString = !"$"
 }
 
 val Checkt.Settings.ValidationPath

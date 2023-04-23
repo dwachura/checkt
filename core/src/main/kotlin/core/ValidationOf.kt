@@ -29,7 +29,8 @@ fun <T> validation(validationBlock: ValidationBlock<T>): ValidationSpecification
 suspend fun <T> T.validate(
     namedAs: NotBlankString? = null,
     validationBlock: ValidationBlock<T>,
-) = validation(validationBlock)(this, namedAs)
+): ValidationResult =
+    validation(validationBlock)(this, namedAs)
 
 /**
  * Validation logic builder/DSL.
@@ -72,7 +73,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
         }
 
     /**
-     * Validate given [value][Named] against [validation logic][validationBlock]
+     * Validate given [value][namedValue] against [validation logic][validationBlock]
      * into a new, [named][Named.name] [context][ValidationOf] relative to the
      * current one.
      *
@@ -80,30 +81,32 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      * [ValidationResultSettings.unrecoverableErrorTypes] is thrown otherwise (see
      * [ValidationScope.validate]).
      */
-    suspend infix fun <T> Named<T>.require(
+    suspend fun <T> require(
+        namedValue: Named<T>,
         validationBlock: ValidationBlock<T>
     ): ValidationStatus =
         with(internalsGate) {
-            scope.validate(name.asSegment()) {
-                toValidationOf(value).validationBlock()
+            scope.validate(namedValue.name.asSegment()) {
+                toValidationOf(namedValue.value).validationBlock()
             }
         }
 
     /**
-     * "Overloaded" version of [Named.require] function that takes property as
-     * a receiver. A new scope's name and value to validate is taken from the
+     * "Overloaded" version of [require] function that takes property as
+     * a parameter. A new scope's name and value to validate is taken from the
      * property specified ([KProperty0.name] and [KProperty0.get] respectively).
      */
-    suspend infix fun <T> KProperty0<T>.require(
+    suspend fun <T> require(
+        property: KProperty0<T>,
         validationBlock: ValidationBlock<T>
     ): ValidationStatus =
-        toNamed().require(validationBlock)
+        require(property.toNamed(), validationBlock)
 
     /**
      * DSL version of [runWhenValid] making [current context][ValidationOf]
      * available into passed [validation block][validationBlock].
      */
-    suspend fun ValidationStatus.whenValid(
+    suspend infix fun ValidationStatus.whenValid(
         validationBlock: ValidationBlock<V>
     ): ValidationStatus =
         takeIf { it is ValidationStatus.Invalid }
@@ -115,7 +118,7 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      */
     suspend fun catching(validationBlock: ValidationBlock<V>): ValidationResult =
         validateCatching {
-            subject { validationBlock() }
+            subject.invoke(validationBlock)
         }
 
     /**
@@ -206,6 +209,31 @@ suspend fun <T : Map<K, V>, K, V> ValidationOf<T>.eachEntry(
             }
         }.fold()
     }
+
+// TODO: tests
+/**
+ * Validates given [value][namedValue] unless it's null.
+ *
+ * Returns [ValidationStatus.Valid] otherwise.
+ */
+suspend fun <T> ValidationOf<*>.requireUnlessNull(
+    namedValue: Named<T?>,
+    validationBlock: ValidationBlock<T>
+): ValidationStatus =
+    namedValue.value?.let {
+        require(it.namedAs(namedValue.name), validationBlock)
+    } ?: ValidationStatus.Valid
+
+// TODO: tests
+/**
+ * "Overloaded" version of [requireUnlessNull] function that takes property as
+ * a parameter.
+ */
+suspend fun <T> ValidationOf<*>.requireUnlessNull(
+    property: KProperty0<T?>,
+    validationBlock: ValidationBlock<T>
+): ValidationStatus =
+    requireUnlessNull(property.toNamed(), validationBlock)
 
 /**
  * Shorter alias for [validated subject][ValidationOf.subject], that can be

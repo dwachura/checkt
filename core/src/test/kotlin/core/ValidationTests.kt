@@ -36,12 +36,12 @@ class ValidationTests : FreeSpec({
                     +failWithMessage { "2" }
                     +failWithMessage { "3" }
                 }.shouldBeInvalid(withViolationsCountEqualTo = 2)
-                (the::collection require {
+                require(the::collection) {
                     +failWithMessage { "4" }
-                }).shouldBeInvalid(withViolationsCountEqualTo = 1)
-                (the.map.namedAs(!"customName") require {
+                }.shouldBeInvalid(withViolationsCountEqualTo = 1)
+                require(the.map.namedAs(!"customName")) {
                     +failWithMessage { "5" }
-                }).shouldBeInvalid(withViolationsCountEqualTo = 1)
+                }.shouldBeInvalid(withViolationsCountEqualTo = 1)
             }
         ) {
             result.shouldBeInvalidExactlyBecause(
@@ -66,7 +66,7 @@ class ValidationTests : FreeSpec({
         testValidation(
             of = toValidate,
             with = validation {
-                the::collection require {
+                require(the::collection) {
                     eachElement { idx -> +failWithMessage { "$idx" } }
                 }
             }
@@ -91,7 +91,7 @@ class ValidationTests : FreeSpec({
         testValidation(
             of = toValidate,
             with = validation {
-                the::map require {
+                require(the::map) {
                     eachEntry(
                         keyValidation = { value -> +failWithMessage { "$subject:$value" } },
                         valueValidation = { key -> +failWithMessage { "$key:$subject" } },
@@ -108,8 +108,8 @@ class ValidationTests : FreeSpec({
             testValidation(
                 of = Dto(),
                 with = validation {
-                    the::simpleValue require { +pass }
-                    the.collection.namedAs(!"simpleValue") require { +pass }
+                    require(the::simpleValue) { +pass }
+                    require(the.collection.namedAs(!"simpleValue")) { +pass }
                 }
             ) {}
         }
@@ -118,9 +118,9 @@ class ValidationTests : FreeSpec({
     "First exceptional operation fails validation" {
         val expectedException = RuntimeException("error")
         val spec = validation<Dto> {
-            the::simpleValue.require { +pass }
-            the::collection require { throw expectedException }
-            the::map.require { throw RuntimeException() }
+            require(the::simpleValue) { +pass }
+            require(the::collection) { throw expectedException }
+            require(the::map) { throw RuntimeException() }
         }
 
         testValidation(Dto(), spec) {
@@ -150,7 +150,7 @@ class ValidationTests : FreeSpec({
             class ThrowingCheck(val ex: Throwable) : Check<Any> by Check({ throw ex })
 
             val spec = validation<Dto> {
-                the::simpleValue require {
+                require(the::simpleValue) {
                     +ThrowingCheck(expectedException).toValidationRule { "" }
                 }
             }
@@ -163,9 +163,9 @@ class ValidationTests : FreeSpec({
         "Exceptions from nested blocks are caught" - {
             "Simple nesting" {
                 val spec = validation<Dto> {
-                    the::simpleValue require {
-                        the::length require {
-                            subject.namedAs(!"deeper") require { throw expectedException }
+                    require(the::simpleValue) {
+                        require(the::length) {
+                            require(subject.namedAs(!"deeper")) { throw expectedException }
                         }
                     }
                 }
@@ -177,7 +177,7 @@ class ValidationTests : FreeSpec({
 
             "Iterated nesting" {
                 val spec = validation<Dto> {
-                    the::collection require {
+                    require(the::collection) {
                         eachElement { idx -> throw RuntimeException("$idx") }
                     }
                 }
@@ -197,7 +197,7 @@ class ValidationTests : FreeSpec({
 
                 "Key validation error" {
                     val spec = validation<Dto> {
-                        the::map require {
+                        require(the::map) {
                             eachEntry(
                                 keyValidation = { throw RuntimeException(it) },
                                 valueValidation = { +pass }
@@ -212,7 +212,7 @@ class ValidationTests : FreeSpec({
 
                 "Value validation error" {
                     val spec = validation<Dto> {
-                        the::map require {
+                        require(the::map) {
                             eachEntry { throw RuntimeException(subject) }
                         }
                     }
@@ -229,7 +229,7 @@ class ValidationTests : FreeSpec({
             val spec = validation<Dto> {
                 the.simpleValue {
                     catching {
-                        the::length require { throw IllegalStateException(expectedMessage) }
+                        require(the::length) { throw IllegalStateException(expectedMessage) }
                     }.recover(
                         from<IllegalStateException> { +pass }
                     ).whenValid {

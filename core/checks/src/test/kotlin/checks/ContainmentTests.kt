@@ -1,13 +1,6 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.validation
-import io.dwsoft.checkt.testing.forAll
-import io.dwsoft.checkt.testing.shouldBeInvalidBecause
-import io.dwsoft.checkt.testing.shouldBeValid
-import io.dwsoft.checkt.testing.shouldNotPass
-import io.dwsoft.checkt.testing.shouldPass
-import io.dwsoft.checkt.testing.testValidation
-import io.dwsoft.checkt.testing.violated
+import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
@@ -25,145 +18,32 @@ import io.kotest.property.exhaustive.merge
 import io.kotest.property.exhaustive.of
 
 class ContainmentTests : FreeSpec({
-    "${ContainsAny::class.simpleName}" - {
-        forAll(containmentCases()) {
-            "Check works" {
-                when {
-                    collection containsAnyOf other ->
-                        collection shouldPass ContainsAny(other)
-                    else -> collection shouldNotPass ContainsAny(other)
-                }
-            }
+    testsFor<ContainsAny<Any>, _, _>(
+        runFor = containmentCases(),
+        checking = { collection },
+        validWhen = { it containsAnyOf other },
+        check = { ContainsAny(other) },
+        rule = { containsAnyOf(it.other) },
+        violationMessage = { it shouldContain "Collection must contain any of elements specified" }
+    )
 
-            "Rule works" {
-                testValidation(
-                    of = collection,
-                    with = validation { +containsAnyOf(other) }
-                ) {
-                    when {
-                        collection containsAnyOf other -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<ContainsAny<*>> { msg ->
-                                msg shouldContain "Collection must contain any of elements specified"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
+    testsFor<ContainsAll<Any>, _, _>(
+        runFor = containmentCases(),
+        checking = { collection },
+        validWhen = { it containsAllOf other },
+        check = { ContainsAll(other) },
+        rule = { containsAllOf(it.other) },
+        violationMessage = { it shouldContain "Collection must contain all of elements specified" }
+    )
 
-    "${ContainsAll::class.simpleName}" - {
-        forAll(containmentCases()) {
-            "Check works" {
-                when {
-                    collection containsAllOf other ->
-                        collection shouldPass ContainsAll(other)
-                    else ->
-                        collection shouldNotPass ContainsAll(other)
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = collection,
-                    with = validation { +containsAllOf(other) }
-                ) {
-                    when {
-                        collection containsAllOf other -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<ContainsAll<*>> { msg ->
-                                msg shouldContain "Collection must contain all of elements specified"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    "${ContainsNone::class.simpleName}" - {
-        forAll(containmentCases()) {
-            "Check works" {
-                when {
-                    collection containsNoneOf other ->
-                        collection shouldPass ContainsNone(other)
-                    else ->
-                        collection shouldNotPass ContainsNone(other)
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = collection,
-                    with = validation { +containsNoneOf(other) }
-                ) {
-                    when {
-                        collection containsNoneOf other -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<ContainsNone<*>> { msg ->
-                                msg shouldContain "Collection must not contain any of elements specified"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    "${ContainsAnything::class.simpleName}" - {
-        forAll(containmentCases()) {
-            "Check works" {
-                when {
-                    collection.isNotEmpty() -> collection shouldPass ContainsAnything
-                    else -> collection shouldNotPass ContainsAnything
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = collection,
-                    with = validation { +containsAnything() }
-                ) {
-                    when {
-                        collection.isNotEmpty() -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<ContainsAnything> { msg ->
-                                msg shouldContain "Collection must contain anything"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    "${ContainsNothing::class.simpleName}" - {
-        forAll(containmentCases()) {
-            "Check works" {
-                when {
-                    collection.isEmpty() -> collection shouldPass ContainsNothing
-                    else -> collection shouldNotPass ContainsNothing
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = collection,
-                    with = validation { +containsNothing() }
-                ) {
-                    when {
-                        collection.isEmpty() -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<ContainsNothing> { msg ->
-                                msg shouldContain "Collection must not contain any elements"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
+    testsFor<ContainsNone<Any>, _, _>(
+        runFor = containmentCases(),
+        checking = { collection },
+        validWhen = { it containsNoneOf other },
+        check = { ContainsNone(other) },
+        rule = { containsNoneOf(it.other) },
+        violationMessage = { it shouldContain "Collection must not contain any of elements specified" }
+    )
 })
 
 private fun containmentCases(): Gen<ContainmentCase> {

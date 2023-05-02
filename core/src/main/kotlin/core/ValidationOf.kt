@@ -210,7 +210,6 @@ suspend fun <T : Map<K, V>, K, V> ValidationOf<T>.eachEntry(
         }.fold()
     }
 
-// TODO: tests
 /**
  * Validates given [value][namedValue] unless it's null.
  *
@@ -224,7 +223,6 @@ suspend fun <T> ValidationOf<*>.requireUnlessNull(
         require(it.namedAs(namedValue.name), validationBlock)
     } ?: ValidationStatus.Valid
 
-// TODO: tests
 /**
  * "Overloaded" version of [requireUnlessNull] function that takes property as
  * a parameter.

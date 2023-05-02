@@ -281,7 +281,16 @@ fun ValidationRules<OffsetTime>.futureOrPresent(
 ): ValidationRule<OffsetTime, FutureOrPresent<Temporal<OffsetTime>>> =
     ValidationRule.create(FutureOrPresent { Temporal.of(now()) }, errorMessage) { Temporal.of(it) }
 
-// TODO: kdock about custom implementations
+/**
+ * Interface used to group types that represents temporal values, introduced so that unified
+ * checks can be defined.
+ *
+ * New implementation should extend one of the pre-defined sub-interfaces that corresponds to
+ * its kind, i.e. [Date], [Time] or [DateTime]. It also should be added in a form of factory
+ * function defined as an extension of [the companion object][Temporal.Companion] of this interface
+ * (see examples for predefined implementations [Temporal.Companion.of]) together with corresponding
+ * [rule][ValidationRule] factory function (e.g. [ValidationRules.past]).
+ */
 sealed interface Temporal<T : Comparable<T>> : Comparable<Temporal<T>> {
     val value: T
     val iso8601: String

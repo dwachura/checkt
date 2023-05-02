@@ -5,10 +5,8 @@ import io.dwsoft.checkt.testing.failWithMessage
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
-import io.dwsoft.checkt.testing.shouldBeValid
-import io.dwsoft.checkt.testing.shouldNotPass
-import io.dwsoft.checkt.testing.shouldPass
 import io.dwsoft.checkt.testing.testValidation
+import io.dwsoft.checkt.testing.testsFor
 import io.dwsoft.checkt.testing.violated
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.string.shouldContain
@@ -17,59 +15,23 @@ import io.kotest.property.Gen
 import io.kotest.property.exhaustive.of
 
 class NullabilityTests : FreeSpec({
-    "${NotNull::class.simpleName}" - {
-        forAll(nullabilityCases()) {
-            "Check works" {
-                when {
-                    value != null -> value shouldPass NotNull
-                    else -> value shouldNotPass NotNull
-                }
-            }
+    testsFor<NotNull, _, _>(
+        runFor = nullabilityCases(),
+        checking = { value },
+        validWhen = { it != null },
+        check = { NotNull },
+        rule = { notBeNull() },
+        violationMessage = { it shouldContain "Value must not be null" }
+    )
 
-            "Rule works" {
-                testValidation(
-                    of = value,
-                    with = validation { +notBeNull() }
-                ) {
-                    when {
-                        value != null -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<NotNull> { msg ->
-                                msg shouldContain "Value must not be null"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    "${IsNull::class.simpleName}" - {
-        forAll(nullabilityCases()) {
-            "Check works" {
-                when {
-                    value != null -> value shouldNotPass IsNull
-                    else -> value shouldPass IsNull
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = value,
-                    with = validation { +beNull() }
-                ) {
-                    when (value) {
-                        null -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<IsNull> { msg ->
-                                msg shouldContain "Value must be null"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
+    testsFor<IsNull, _, _>(
+        runFor = nullabilityCases(),
+        checking = { value },
+        validWhen = { it == null },
+        check = { IsNull },
+        rule = { beNull() },
+        violationMessage = { it shouldContain "Value must be null" }
+    )
 
     "Rules are applied only when subject is non-null" {
         forAll(nullabilityCases()) {
@@ -85,7 +47,6 @@ class NullabilityTests : FreeSpec({
                     null -> result.shouldBeInvalidBecause(
                         validated.violated<NotNull>(withMessage = "1")
                     )
-
                     else -> result.shouldBeInvalidBecause(
                         validated.failed(withMessage = "2")
                     )

@@ -1,13 +1,6 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.validation
-import io.dwsoft.checkt.testing.forAll
-import io.dwsoft.checkt.testing.shouldBeInvalidBecause
-import io.dwsoft.checkt.testing.shouldBeValid
-import io.dwsoft.checkt.testing.shouldNotPass
-import io.dwsoft.checkt.testing.shouldPass
-import io.dwsoft.checkt.testing.testValidation
-import io.dwsoft.checkt.testing.violated
+import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
@@ -19,113 +12,41 @@ import io.kotest.property.arbitrary.next
 import io.kotest.property.exhaustive.of
 
 class ComparisonTests : FreeSpec({
-    "${LessThan::class.simpleName}" - {
-        forAll(comparisonCases()) {
-            "Check works" {
-                when {
-                    first < second -> first shouldPass LessThan(second)
-                    else -> first shouldNotPass LessThan(second)
-                }
-            }
+    testsFor<LessThan<Any>, _, _>(
+        runFor = comparisonCases(),
+        checking = { first },
+        validWhen = { it < second },
+        check = { LessThan(second) },
+        rule = { lessThan(it.second) },
+        violationMessage = { it shouldContain "Value must be less than $second" }
+    )
 
-            "Rule works" {
-                testValidation(
-                    of = first,
-                    with = validation { +lessThan(second) }
-                ) {
-                    when {
-                        first < second -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<LessThan<*>> { msg ->
-                                msg shouldContain "Value must be less than $second"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
+    testsFor<LessThanOrEqual<Any>, _, _>(
+        runFor = comparisonCases(),
+        checking = { first },
+        validWhen = { it <= second },
+        check = { LessThanOrEqual(second) },
+        rule = { notGreaterThan(it.second) },
+        violationMessage = { it shouldContain "Value must not be greater than $second" }
+    )
 
-    "${LessThanOrEqual::class.simpleName}" - {
-        forAll(comparisonCases()) {
-            "Check works" {
-                when {
-                    first > second -> first shouldNotPass LessThanOrEqual(second)
-                    else -> first shouldPass LessThanOrEqual(second)
-                }
-            }
+    testsFor<GreaterThan<Any>, _, _>(
+        runFor = comparisonCases(),
+        checking = { first },
+        validWhen = { it > second },
+        check = { GreaterThan(second) },
+        rule = { greaterThan(it.second) },
+        violationMessage = { it shouldContain "Value must be greater than $second" }
+    )
 
-            "Rule works" {
-                testValidation(
-                    of = first,
-                    with = validation { +notGreaterThan(second) }
-                ) {
-                    when {
-                        first <= second -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<LessThanOrEqual<*>> { msg ->
-                                msg shouldContain "Value must not be greater than $second"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    "${GreaterThan::class.simpleName}" - {
-        forAll(comparisonCases()) {
-            "Check works" {
-                when {
-                    first > second -> first shouldPass GreaterThan(second)
-                    else -> first shouldNotPass GreaterThan(second)
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = first,
-                    with = validation { +greaterThan(second) }
-                ) {
-                    when {
-                        first > second -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<GreaterThan<*>> { msg ->
-                                msg shouldContain "Value must be greater than $second"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
-
-    "${GreaterThanOrEqual::class.simpleName}" - {
-        forAll(comparisonCases()) {
-            "Check works" {
-                when {
-                    first < second -> first shouldNotPass GreaterThanOrEqual(second)
-                    else -> first shouldPass GreaterThanOrEqual(second)
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = first,
-                    with = validation { +notLessThan(second) }
-                ) {
-                    when {
-                        first >= second -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<GreaterThanOrEqual<*>> { msg ->
-                                msg shouldContain "Value must not be less than $second"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
+    testsFor<GreaterThanOrEqual<Any>, _, _>(
+        runFor = comparisonCases(),
+        checking = { first },
+        validWhen = { it >= second },
+        check = { GreaterThanOrEqual(second) },
+        rule = { notLessThan(it.second) },
+        violationMessage = { it shouldContain "Value must not be less than $second" }
+    )
 })
 
 private fun comparisonCases(): Gen<Pair<Comparable<Any>, Any>> {

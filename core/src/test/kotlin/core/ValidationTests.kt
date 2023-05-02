@@ -24,6 +24,7 @@ class ValidationTests : FreeSpec({
         val simpleValue: String = Arb.string().next(),
         val collection: Collection<Number> = emptyList(),
         val map: Map<Double, String> = emptyMap(),
+        val nullableValue: Any? = null,
     )
 
     "Resulting and sub-statuses are returned correctly" {
@@ -128,18 +129,33 @@ class ValidationTests : FreeSpec({
         }
     }
 
-    "Rules can be executed conditionally" {
-        val failFirst = "fail"
-        val spec = validation<Dto> {
-            val status = if (the.simpleValue === failFirst) +failWithMessage { "1" } else +pass
-            status.whenValid { +failWithMessage { "2" } }
+    "Rules can be executed conditionally depending on..." - {
+        "...the other rule's result" {
+            val failFirst = "fail"
+            val spec = validation<Dto> {
+                val status = if (the.simpleValue === failFirst) +failWithMessage { "1" } else +pass
+                status.whenValid { +failWithMessage { "2" } }
+            }
+
+            testValidation(Dto(simpleValue = failFirst), spec) {
+                result.shouldBeInvalidBecause(validated.failed(withMessage = "1"))
+            }
+            testValidation(Dto(), spec) {
+                result.shouldBeInvalidBecause(validated.failed(withMessage = "2"))
+            }
         }
 
-        testValidation(Dto(simpleValue = failFirst), spec) {
-            result.shouldBeInvalidBecause(validated.failed(withMessage = "1"))
-        }
-        testValidation(Dto(), spec) {
-            result.shouldBeInvalidBecause(validated.failed(withMessage = "2"))
+        "...whether a value is not null" {
+            val spec = validation<Dto> {
+                requireUnlessNull(the::nullableValue) { +failWithMessage { "1" } }
+            }
+
+            testValidation(Dto(nullableValue = null), spec) { result.shouldBeValid() }
+            testValidation(Dto(nullableValue = Any()), spec) {
+                result.shouldBeInvalidBecause(
+                    validated.nullableValue.failed(underPath = { -"nullableValue" }, withMessage = "1")
+                )
+            }
         }
     }
 

@@ -1,13 +1,6 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.validation
-import io.dwsoft.checkt.testing.forAll
-import io.dwsoft.checkt.testing.shouldBeInvalidBecause
-import io.dwsoft.checkt.testing.shouldBeValid
-import io.dwsoft.checkt.testing.shouldNotPass
-import io.dwsoft.checkt.testing.shouldPass
-import io.dwsoft.checkt.testing.testValidation
-import io.dwsoft.checkt.testing.violated
+import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
@@ -22,32 +15,14 @@ import io.kotest.property.exhaustive.map
 import io.kotest.property.exhaustive.of
 
 class PatternTests : FreeSpec({
-    "${Pattern::class.simpleName}" - {
-        forAll(casesFor(anyRegex())) {
-            "Check works" {
-                when {
-                    value matches regex -> value shouldPass Pattern(regex)
-                    else -> value shouldNotPass Pattern(regex)
-                }
-            }
-
-            "Rule works" {
-                testValidation(
-                    of = value,
-                    with = validation { +matchesRegex(regex) }
-                ) {
-                    when {
-                        value matches regex -> result.shouldBeValid()
-                        else -> result.shouldBeInvalidBecause(
-                            validated.violated<Pattern> { msg ->
-                                msg shouldContain "Value must match regex '$regex'"
-                            }
-                        )
-                    }
-                }
-            }
-        }
-    }
+    testsFor<Pattern, _, _>(
+        runFor = casesFor(anyRegex()),
+        checking = { value },
+        validWhen = { it matches regex },
+        check = { Pattern(regex) },
+        rule = { matchesRegex(it.regex) },
+        violationMessage = { it shouldContain "Value must match regex '$regex'" }
+    )
 })
 
 private fun casesFor(regexes: Exhaustive<Regex>): Gen<PatternCase> =

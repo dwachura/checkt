@@ -5,8 +5,6 @@ import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
 
-// TODO: tests
-
 object NotEmpty : Check<Emptiable> by Check({ it.isNotEmpty() })
 
 @JvmName("notEmptyCharSequence")
@@ -16,13 +14,13 @@ fun ValidationRules<CharSequence>.notEmpty(
     ValidationRule.Companion.create(NotEmpty, errorMessage) { Emptiable.of(it) }
 
 @JvmName("notEmptyCollection")
-fun <T> ValidationRules<Collection<T>>.notEmpty(
+fun <T> ValidationRules<Collection<*>>.notEmpty(
     errorMessage: LazyErrorMessage<NotEmpty, Collection<T>> = { "Collection must not be empty" },
 ) : ValidationRule<Collection<T>, NotEmpty> =
     ValidationRule.Companion.create(NotEmpty, errorMessage) { Emptiable.of(it) }
 
 @JvmName("notEmptyArray")
-fun <T> ValidationRules<Array<T>>.notEmpty(
+fun <T> ValidationRules<Array<*>>.notEmpty(
     errorMessage: LazyErrorMessage<NotEmpty, Array<T>> = { "Array must not be empty" },
 ) : ValidationRule<Array<T>, NotEmpty> =
     ValidationRule.Companion.create(NotEmpty, errorMessage) { Emptiable.of(it) }
@@ -36,18 +34,26 @@ fun ValidationRules<CharSequence>.empty(
     ValidationRule.Companion.create(Empty, errorMessage) { Emptiable.of(it) }
 
 @JvmName("emptyCollection")
-fun <T> ValidationRules<Collection<T>>.empty(
+fun <T> ValidationRules<Collection<*>>.empty(
     errorMessage: LazyErrorMessage<Empty, Collection<T>> = { "Collection must be empty" },
 ) : ValidationRule<Collection<T>, Empty> =
     ValidationRule.Companion.create(Empty, errorMessage) { Emptiable.of(it) }
 
 @JvmName("emptyArray")
-fun <T> ValidationRules<Array<T>>.empty(
+fun <T> ValidationRules<Array<*>>.empty(
     errorMessage: LazyErrorMessage<Empty, Array<T>> = { "Array must be empty" },
 ) : ValidationRule<Array<T>, Empty> =
     ValidationRule.Companion.create(Empty, errorMessage) { Emptiable.of(it) }
 
-// TODO: kdock about custom implementations
+/**
+ * Interface used to group types that can have "empty" state, introduced due to lack of
+ * built-in equivalent.
+ *
+ * New implementation should be added in a form of factory function defined as an extension of
+ * [the companion object][Emptiable.Companion] of this interface (see examples for predefined
+ * implementations [Emptiable.Companion.of]) together with corresponding [rule][ValidationRule]
+ * factory function (e.g. [ValidationRules.empty]).
+ */
 fun interface Emptiable {
     fun isEmpty(): Boolean
 

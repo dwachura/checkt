@@ -1,6 +1,11 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.*
+import io.dwsoft.checkt.core.LazyErrorMessage
+import io.dwsoft.checkt.core.ParameterizedCheck
+import io.dwsoft.checkt.core.ParamsOf
+import io.dwsoft.checkt.core.ValidationRule
+import io.dwsoft.checkt.core.ValidationRules
+import io.dwsoft.checkt.core.and
 
 class ContainsAny<V>(elements: Collection<V>) :
     ParameterizedCheck<Collection<V>, ContainsAny.Params<V>> by (
@@ -61,21 +66,3 @@ fun <T, T2 : Collection<T>> ValidationRules<T2>.containsNoneOf(
         { "Collection must not contain any of elements specified" },
 ): ValidationRule<T2, ContainsNone<T>> =
     ContainsNone(elements).toValidationRule(errorMessage)
-
-// TODO: remove and replace with NotEmpty check
-object ContainsAnything : Check<Collection<*>> by Check({ it.isNotEmpty() })
-
-fun <T> ValidationRules<Collection<T>>.containsAnything(
-    errorMessage: LazyErrorMessage<ContainsAnything, Collection<T>> =
-        { "Collection must contain anything" },
-): ValidationRule<Collection<T>, ContainsAnything> =
-    ContainsAnything.toValidationRule(errorMessage)
-
-// TODO: remove and replace with Empty check
-object ContainsNothing : Check<Collection<*>> by Check({ it.isEmpty() })
-
-fun <T, T2 : Collection<T>> ValidationRules<T2>.containsNothing(
-    errorMessage: LazyErrorMessage<ContainsNothing, T2> =
-        { "Collection must not contain any elements" },
-): ValidationRule<T2, ContainsNothing> =
-    ContainsNothing.toValidationRule(errorMessage)

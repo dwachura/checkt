@@ -1,7 +1,10 @@
 package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Element
-import io.dwsoft.checkt.core.ValidationPath.Element.*
+import io.dwsoft.checkt.core.ValidationPath.Element.Index
+import io.dwsoft.checkt.core.ValidationPath.Element.Key
+import io.dwsoft.checkt.core.ValidationPath.Element.NumericIndex
+import io.dwsoft.checkt.core.ValidationPath.Element.Segment
 
 sealed interface ValidationPath {
     val head: Element

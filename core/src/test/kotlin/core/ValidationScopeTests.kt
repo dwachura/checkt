@@ -39,7 +39,7 @@ class ValidationScopeTests : FreeSpec({
 
             val status = scope.verifyValue("v1", failingRule)
 
-            status.shouldBeInvalidBecause("v1".failed(withMessage = "v1"))
+            status.shouldBeInvalidBecause("v1".failed { withMessage("v1") })
         }
 
         "...statuses are merged into the scope's status" {
@@ -50,9 +50,9 @@ class ValidationScopeTests : FreeSpec({
             }.status
 
             status.shouldBeInvalidBecause(
-                "v1".failed(withMessage = "v1"),
-                "v2".failed(withMessage = "v2"),
-                "v3".failed(withMessage = "v3"),
+                "v1".failed { withMessage("v1") },
+                "v2".failed { withMessage("v2") },
+                "v3".failed { withMessage("v3") },
             )
         }
     }
@@ -65,8 +65,8 @@ class ValidationScopeTests : FreeSpec({
             }
 
             status.shouldBeInvalidBecause(
-                "v1".failed(withMessage = "v1"),
-                "v2".failed(withMessage = "v2"),
+                "v1".failed { withMessage("v1") },
+                "v2".failed { withMessage("v2") },
             )
         }
 
@@ -78,9 +78,9 @@ class ValidationScopeTests : FreeSpec({
             }.status
 
             status.shouldBeInvalidBecause(
-                "v1".failed(withMessage = "v1"),
-                "v2".failed(withMessage = "v2"),
-                "v3".failed(withMessage = "v3"),
+                "v1".failed { withMessage("v1") },
+                "v2".failed { withMessage("v2") },
+                "v3".failed { withMessage("v3") },
             )
         }
 
@@ -88,7 +88,10 @@ class ValidationScopeTests : FreeSpec({
             "...works" {
                 forAll(nestingCases()) {
                     val expectedViolation =
-                        "v".failed(withMessage = "v", underPath = { root + this@forAll })
+                        "v".failed {
+                            underPath { root + this@forAll }
+                            withMessage("v")
+                        }
                     val scope = ValidationScope()
 
                     val nestedStatus = when (this) {

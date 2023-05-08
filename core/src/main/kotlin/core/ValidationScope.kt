@@ -6,7 +6,7 @@ import kotlin.concurrent.withLock
 /**
  * Groups [validation rules][ValidationRule] under a common [name][validationPath].
  *
- * In general, scopes creates a named context under which validation rules are
+ * In general, scope creates a named context under which validation rules are
  * applied to the values, as well as provides a validation DSL ([verifyValue] and
  * related functions) to create relatively named sub-scopes.
  * This can be used to represent a structure of a complex values being validated

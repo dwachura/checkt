@@ -2,29 +2,24 @@ package io.dwsoft.checkt.core.checks
 
 import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
 import io.kotest.property.exhaustive.of
 
 class EqualityTests : FreeSpec({
-    testsFor<Equals<Any?>, _, _>(
-        runFor = equalityCases(),
-        checking = { first },
-        validWhen = { it == second },
-        check = { Equals(second) },
-        rule = { equalTo(it.second) },
-        violationMessage = { it shouldContain "Value must equal to $second" }
-    )
+    testsFor(equalityCases()) {
+        fromCase(take = { first }) {
+            check { Equals(case.second) } shouldPassWhen { value == case.second }
 
-    testsFor<IsDifferent<Any?>, _, _>(
-        runFor = equalityCases(),
-        checking = { first },
-        validWhen = { it != second },
-        check = { IsDifferent(second) },
-        rule = { differentThan(it.second) },
-        violationMessage = { it shouldContain "Value must be different than $second" }
-    )
+            check { IsDifferent(case.second) } shouldPassWhen { value != case.second }
+
+            rule { equalTo(case.second) } shouldPassWhen { value == case.second } orFail
+                    { withMessage("Value must equal to ${case.second}") }
+
+            rule { differentThan(case.second) } shouldPassWhen { value != case.second } orFail
+                    { withMessage("Value must be different than ${case.second}") }
+        }
+    }
 })
 
 private fun equalityCases(): Gen<Pair<Any?, Any?>> {

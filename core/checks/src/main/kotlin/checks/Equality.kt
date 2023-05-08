@@ -33,31 +33,3 @@ fun <T> ValidationRules<T>.differentThan(
         { "Value must be different than ${context.params.other}" },
 ): ValidationRule<T, IsDifferent<T>> =
     IsDifferent(other).toValidationRule(errorMessage)
-
-// TODO: extract to other module (additional rules) + test???
-
-fun ValidationRules<Boolean>.beTrue(
-    errorMessage: LazyErrorMessage<Equals<Boolean>, Boolean> =
-        { "Value must be true" }
-): ValidationRule<Boolean, Equals<Boolean>> =
-    Equals(true).toValidationRule(errorMessage)
-
-fun ValidationRules<Boolean?>.notBeTrue(
-    errorMessage: LazyErrorMessage<IsDifferent<Boolean?>, Boolean?> =
-        { "Value must not be true" }
-): ValidationRule<Boolean?, IsDifferent<Boolean?>> =
-    @Suppress("UNCHECKED_CAST")
-    (IsDifferent(true) as IsDifferent<Boolean?>).toValidationRule(errorMessage)
-
-fun ValidationRules<Boolean>.beFalse(
-    errorMessage: LazyErrorMessage<Equals<Boolean>, Boolean> =
-        { "Value must be false" }
-): ValidationRule<Boolean, Equals<Boolean>> =
-    Equals(false).toValidationRule(errorMessage)
-
-fun ValidationRules<Boolean?>.notBeFalse(
-    errorMessage: LazyErrorMessage<IsDifferent<Boolean?>, Boolean?> =
-        { "Value must not be false" }
-): ValidationRule<Boolean?, IsDifferent<Boolean?>> =
-    @Suppress("UNCHECKED_CAST")
-    (IsDifferent(false) as IsDifferent<Boolean?>).toValidationRule(errorMessage)

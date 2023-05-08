@@ -9,32 +9,30 @@ import io.dwsoft.checkt.testing.testValidation
 import io.dwsoft.checkt.testing.testsFor
 import io.dwsoft.checkt.testing.violated
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
 import io.kotest.property.exhaustive.of
 
 class NullabilityTests : FreeSpec({
-    testsFor<NotNull, _, _>(
-        runFor = nullabilityCases(),
-        checking = { value },
-        validWhen = { it != null },
-        check = { NotNull },
-        rule = { notBeNull() },
-        violationMessage = { it shouldContain "Value must not be null" }
-    )
+    testsFor(nullabilityCases()) {
+        onCase {
+            check { NotNull } shouldPassWhen { value != null }
 
-    testsFor<IsNull, _, _>(
-        runFor = nullabilityCases(),
-        checking = { value },
-        validWhen = { it == null },
-        check = { IsNull },
-        rule = { beNull() },
-        violationMessage = { it shouldContain "Value must be null" }
-    )
+            rule { notBeNull() } shouldPassWhen { value != null } orFail {
+                withMessage("Value must not be null")
+            }
+
+            check { IsNull } shouldPassWhen { value == null }
+
+            rule { beNull() } shouldPassWhen { value == null } orFail {
+                withMessage("Value must be null")
+            }
+        }
+    }
 
     "Rules are applied only when subject is non-null" {
         forAll(nullabilityCases()) {
+            val value = this
             testValidation(
                 of = value,
                 with = validation {
@@ -45,10 +43,10 @@ class NullabilityTests : FreeSpec({
             ) {
                 when (value) {
                     null -> result.shouldBeInvalidBecause(
-                        validated.violated<NotNull>(withMessage = "1")
+                        validated.violated<NotNull> { withMessage("1") }
                     )
                     else -> result.shouldBeInvalidBecause(
-                        validated.failed(withMessage = "2")
+                        validated.failed { withMessage("2") }
                     )
                 }
             }
@@ -56,17 +54,5 @@ class NullabilityTests : FreeSpec({
     }
 })
 
-private fun nullabilityCases(): Gen<NullabilityCase> =
-    Exhaustive.of(
-        notNullValue(),
-        nullValue()
-    )
-
-private fun notNullValue(): NullabilityCase =
-    NullabilityCase(Any())
-
-private fun nullValue(): NullabilityCase =
-    NullabilityCase(null)
-
-private data class NullabilityCase(val value: Any?)
+private fun nullabilityCases(): Gen<Any?> = Exhaustive.of(Any(), null)
 

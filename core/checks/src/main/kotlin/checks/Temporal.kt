@@ -15,8 +15,6 @@ import java.time.OffsetTime
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-// TODO: tests
-
 class Past<V : Temporal<*>>(private val present: () -> V) : ParameterizedCheck<V, Past.Params<V>> {
     override suspend fun invoke(value: V): ParameterizedCheck.Result<Params<V>> =
         present().let {
@@ -285,75 +283,73 @@ fun ValidationRules<OffsetTime>.futureOrPresent(
  * Interface used to group types that represents temporal values, introduced so that unified
  * checks can be defined.
  *
- * New implementation should extend one of the pre-defined sub-interfaces that corresponds to
- * its kind, i.e. [Date], [Time] or [DateTime]. It also should be added in a form of factory
- * function defined as an extension of [the companion object][Temporal.Companion] of this interface
- * (see examples for predefined implementations [Temporal.Companion.of]) together with corresponding
- * [rule][ValidationRule] factory function (e.g. [ValidationRules.past]).
+ * New implementation should be added in a form of factory function defined as an extension of
+ * [the companion object][Temporal.Companion] of this interface (see examples for predefined
+ * implementations [Temporal.Companion.of]) together with corresponding [rule][ValidationRule]
+ * factory function (e.g. [ValidationRules.past]).
  */
-sealed interface Temporal<T : Comparable<T>> : Comparable<Temporal<T>> {
+interface Temporal<T> : Comparable<Temporal<T>> {
     val value: T
     val iso8601: String
-
-    interface Date<T : Comparable<T>> : Temporal<T>
-
-    interface Time<T : Comparable<T>> : Temporal<T> {
-        val isLocal: Boolean
-    }
-
-    interface DateTime<T : Comparable<T>> : Temporal<T> {
-        val isLocal: Boolean
-    }
-
-    override fun compareTo(other: Temporal<T>): Int = value.compareTo(other.value)
 
     companion object
 }
 
+private fun <T : Comparable<T>> Temporal<T>.compareToImpl(other: Temporal<T>): Int =
+    value.compareTo(other.value)
+
 fun Temporal.Companion.of(value: Instant): Temporal<Instant> =
-    object : Temporal.DateTime<Instant> {
+    object : Temporal<Instant> {
         override val value: Instant = value
-        override val isLocal: Boolean = false
         override val iso8601: String = DateTimeFormatter.ISO_INSTANT.format(this.value)
+
+        override fun compareTo(other: Temporal<Instant>): Int = compareToImpl(other)
     }
 
 fun Temporal.Companion.of(value: LocalDateTime): Temporal<LocalDateTime> =
-    object : Temporal.DateTime<LocalDateTime> {
+    object : Temporal<LocalDateTime> {
         override val value: LocalDateTime = value
-        override val isLocal: Boolean = true
         override val iso8601: String = DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(this.value)
+
+        override fun compareTo(other: Temporal<LocalDateTime>): Int = compareToImpl(other)
     }
 
 fun Temporal.Companion.of(value: OffsetDateTime): Temporal<OffsetDateTime> =
-    object : Temporal.DateTime<OffsetDateTime> {
+    object : Temporal<OffsetDateTime> {
         override val value: OffsetDateTime = value
-        override val isLocal: Boolean = false
         override val iso8601: String = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(this.value)
+
+        override fun compareTo(other: Temporal<OffsetDateTime>): Int = compareToImpl(other)
     }
 
 fun Temporal.Companion.of(value: ZonedDateTime): Temporal<ZonedDateTime> =
-    object : Temporal.DateTime<ZonedDateTime> {
+    object : Temporal<ZonedDateTime> {
         override val value: ZonedDateTime = value
-        override val isLocal: Boolean = false
         override val iso8601: String = DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(this.value)
+
+        override fun compareTo(other: Temporal<ZonedDateTime>): Int = compareToImpl(other)
     }
 
 fun Temporal.Companion.of(value: LocalDate): Temporal<LocalDate> =
-    object : Temporal.Date<LocalDate> {
+    object : Temporal<LocalDate> {
         override val value: LocalDate = value
         override val iso8601: String = DateTimeFormatter.ISO_LOCAL_DATE.format(this.value)
+
+        override fun compareTo(other: Temporal<LocalDate>): Int = compareToImpl(other)
     }
 
 fun Temporal.Companion.of(value: LocalTime): Temporal<LocalTime> =
-    object : Temporal.Time<LocalTime> {
+    object : Temporal<LocalTime> {
         override val value: LocalTime = value
-        override val isLocal: Boolean = true
         override val iso8601: String = DateTimeFormatter.ISO_LOCAL_TIME.format(this.value)
+
+        override fun compareTo(other: Temporal<LocalTime>): Int = compareToImpl(other)
     }
 
 fun Temporal.Companion.of(value: OffsetTime): Temporal<OffsetTime> =
-    object : Temporal.Time<OffsetTime> {
+    object : Temporal<OffsetTime> {
         override val value: OffsetTime = value
-        override val isLocal: Boolean = true
         override val iso8601: String = DateTimeFormatter.ISO_OFFSET_TIME.format(this.value)
+
+        override fun compareTo(other: Temporal<OffsetTime>): Int = compareToImpl(other)
     }

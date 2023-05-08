@@ -2,7 +2,6 @@ package io.dwsoft.checkt.core.checks
 
 import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -14,23 +13,21 @@ import io.kotest.property.arbitrary.next
 import io.kotest.property.exhaustive.of
 
 class RangeTests : FreeSpec({
-    testsFor<InRange<Int>, _, _>(
-        runFor = casesFor(anyRange()),
-        checking = { element },
-        validWhen = { it in range },
-        check = { InRange(range) },
-        rule = { inRange(it.range) },
-        violationMessage = { it shouldContain "Value must be in range $range" }
-    )
+    testsFor(casesFor(anyRange())) {
+        fromCase(take = { element }) {
+            check { InRange(case.range) } shouldPassWhen { value in case.range }
 
-    testsFor<OutsideRange<Int>, _, _>(
-        runFor = casesFor(anyRange()),
-        checking = { element },
-        validWhen = { it !in range },
-        check = { OutsideRange(range) },
-        rule = { outsideRange(it.range) },
-        violationMessage = { it shouldContain "Value must not be in range $range" }
-    )
+            rule { inRange(case.range) } shouldPassWhen { value in case.range } orFail {
+                withMessage("Value must be in range ${case.range}")
+            }
+
+            check { OutsideRange(case.range) } shouldPassWhen { value !in case.range }
+
+            rule { outsideRange(case.range) } shouldPassWhen { value !in case.range } orFail {
+                withMessage("Value must not be in range ${case.range}")
+            }
+        }
+    }
 })
 
 private fun casesFor(range: IntRange): Gen<RangeCase<Int>> =

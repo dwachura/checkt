@@ -1,9 +1,7 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.testing.testCheck
-import io.dwsoft.checkt.testing.testRule
+import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -11,85 +9,53 @@ import io.kotest.property.arbitrary.chunked
 import io.kotest.property.arbitrary.constant
 import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.string
-import io.kotest.property.exhaustive.map
 import io.kotest.property.exhaustive.of
-import io.kotest.property.exhaustive.plus
 
 class EmptiableTests : FreeSpec({
-    "${NotEmpty::class.simpleName}" - {
-        testCheck<NotEmpty, _, _>(
-            runFor = allEmptiableCases(),
-            checking = { this },
-            validWhen = { it.isNotEmpty() },
-            check = { NotEmpty },
-        )
+    testsFor(anyEmptiable()) {
+        onCase {
+            check { NotEmpty } shouldPassWhen { value.isNotEmpty() }
 
-        testRule<NotEmpty, _, _>(
-            runFor = emptiableCases<String>(),
-            checking = { this },
-            validWhen = { it.isNotEmpty() },
-            rule = { notEmpty() },
-            violationMessage = { it shouldContain "Value must be empty" }
-        )
-
-        testRule<NotEmpty, _, _>(
-            runFor = emptiableCases<Collection<Any>>(),
-            checking = { this },
-            validWhen = { it.isNotEmpty() },
-            rule = { notEmpty() },
-            violationMessage = { it shouldContain "Collection must be empty" }
-        )
-
-        testRule<NotEmpty, _, _>(
-            runFor = emptiableCases<Array<Any>>(),
-            checking = { this },
-            validWhen = { it.isNotEmpty() },
-            rule = { notEmpty() },
-            violationMessage = { it shouldContain "Array must be empty" }
-        )
+            check { Empty } shouldPassWhen { value.isEmpty() }
+        }
     }
+    testsFor(emptiableCasesFor<String>()) {
+        onCase {
+            rule { notEmpty() } shouldPassWhen { value.isNotEmpty() } orFail
+                    { withMessage("Value must not be empty") }
 
-    "${Empty::class.simpleName}" - {
-        testCheck<Empty, _, _>(
-            runFor = allEmptiableCases(),
-            checking = { this },
-            validWhen = { it.isEmpty() },
-            check = { Empty },
-        )
-
-        testRule<Empty, _, _>(
-            runFor = emptiableCases<String>(),
-            checking = { this },
-            validWhen = { it.isEmpty() },
-            rule = { empty() },
-            violationMessage = { it shouldContain "Value must not be empty" }
-        )
-
-        testRule<Empty, _, _>(
-            runFor = emptiableCases<Collection<Any>>(),
-            checking = { this },
-            validWhen = { it.isEmpty() },
-            rule = { empty() },
-            violationMessage = { it shouldContain "Collection must not be empty" }
-        )
-
-        testRule<Empty, _, _>(
-            runFor = emptiableCases<Array<Any>>(),
-            checking = { this },
-            validWhen = { it.isEmpty() },
-            rule = { empty() },
-            violationMessage = { it shouldContain "Array must not be empty" }
-        )
+            rule { empty() } shouldPassWhen { value.isEmpty() } orFail
+                    { withMessage("Value must be empty") }
+        }
     }
+    testsFor(emptiableCasesFor<Collection<Any>>()) {
+        onCase {
+            rule { notEmpty() } shouldPassWhen { value.isNotEmpty() } orFail
+                    { withMessage("Collection must not be empty") }
 
+            rule { empty() } shouldPassWhen { value.isEmpty() } orFail
+                    { withMessage("Collection must be empty") }
+        }
+    }
+    testsFor(emptiableCasesFor<Array<Any>>()) {
+        onCase {
+            rule { notEmpty() } shouldPassWhen { value.isNotEmpty() } orFail
+                    { withMessage("Array must not be empty") }
+
+            rule { empty() } shouldPassWhen { value.isEmpty() } orFail
+                    { withMessage("Array must be empty") }
+        }
+    }
 })
 
-private fun allEmptiableCases(): Gen<Emptiable> =
-    emptiableCases<String>().map { Emptiable.of(it) } +
-            emptiableCases<Collection<*>>().map { Emptiable.of(it) } +
-            emptiableCases<Array<*>>().map { Emptiable.of(it) }
+private fun anyEmptiable(): Gen<Emptiable> =
+    Exhaustive.of(
+        Emptiable { true }, // empty
+        Emptiable { false }, // non-empty
+    )
 
-private inline fun <reified T> emptiableCases(): Exhaustive<T> =
+@Suppress("UNCHECKED_CAST")
+private inline fun <reified T> emptiableCasesFor(): Exhaustive<T> =
     when (T::class) {
         String::class -> Exhaustive.of(emptyString, notEmptyString())
         Collection::class -> Exhaustive.of(emptyCollection, notEmptyCollection())

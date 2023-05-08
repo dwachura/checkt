@@ -3,6 +3,5 @@ plugins {
 }
 
 dependencies {
-    implementation(Dependencies.`kotlinx-coroutines-core`)
     testImplementation(kotlin("reflect"))
 }

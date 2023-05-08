@@ -46,11 +46,11 @@ class ValidationTests : FreeSpec({
             }
         ) {
             result.shouldBeInvalidExactlyBecause(
-                validated.failed(withMessage = "1"),
-                validated.simpleValue.failed(withMessage = "2"),
-                validated.simpleValue.failed(withMessage = "3"),
-                validated.collection.failed(withMessage = "4", underPath = { -"collection" }),
-                validated.map.failed(withMessage = "5", underPath = { -"customName" }),
+                validated.failed { withMessage("1") },
+                validated.simpleValue.failed { withMessage("2") },
+                validated.simpleValue.failed { withMessage("3") },
+                validated.collection.failed { withMessage("4"); underPath { -"collection" } },
+                validated.map.failed { withMessage("5"); underPath { -"customName" } },
             )
         }
     }
@@ -58,10 +58,10 @@ class ValidationTests : FreeSpec({
     "Iterable's elements are validated" {
         val toValidate = Dto(collection = Arb.list(Arb.double(), 2..3).next())
         val expectedViolations = toValidate.collection.mapIndexed { idx, elem ->
-            elem.failed(
-                underPath = { -"collection"[idx.idx] },
-                withMessage = "$idx"
-            )
+            elem.failed {
+                underPath { -"collection"[idx.idx] }
+                withMessage("$idx")
+            }
         }.toTypedArray()
 
         testValidation(
@@ -84,8 +84,8 @@ class ValidationTests : FreeSpec({
             val msg = "$key:$value"
             val pathPrefix = validationPath { -"map"["$key"] }
             listOf(
-                key.failed(withMessage = msg, underPath = { pathPrefix / "key" }),
-                value.failed(withMessage = msg, underPath = { pathPrefix / "value" })
+                key.failed { withMessage(msg); underPath { pathPrefix / "key" } },
+                value.failed { withMessage(msg); underPath { pathPrefix / "value" } }
             )
         }.toTypedArray()
 
@@ -138,10 +138,10 @@ class ValidationTests : FreeSpec({
             }
 
             testValidation(Dto(simpleValue = failFirst), spec) {
-                result.shouldBeInvalidBecause(validated.failed(withMessage = "1"))
+                result.shouldBeInvalidBecause(validated.failed { withMessage("1") })
             }
             testValidation(Dto(), spec) {
-                result.shouldBeInvalidBecause(validated.failed(withMessage = "2"))
+                result.shouldBeInvalidBecause(validated.failed { withMessage("2") })
             }
         }
 
@@ -153,7 +153,7 @@ class ValidationTests : FreeSpec({
             testValidation(Dto(nullableValue = null), spec) { result.shouldBeValid() }
             testValidation(Dto(nullableValue = Any()), spec) {
                 result.shouldBeInvalidBecause(
-                    validated.nullableValue.failed(underPath = { -"nullableValue" }, withMessage = "1")
+                    validated.nullableValue.failed{ underPath { -"nullableValue" }; withMessage("1") }
                 )
             }
         }
@@ -256,7 +256,7 @@ class ValidationTests : FreeSpec({
 
             testValidation(Dto(), spec) {
                 result.shouldBeInvalidBecause(
-                    validated.simpleValue.failed(withMessage = "1")
+                    validated.simpleValue.failed { withMessage("1") }
                 )
             }
         }

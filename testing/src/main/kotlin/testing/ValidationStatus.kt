@@ -13,8 +13,8 @@ import io.kotest.assertions.withClue
 import io.kotest.inspectors.forAny
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
-import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
+import kotlin.reflect.KClass
 
 fun ValidationStatus.shouldBeValid() {
     "Validation should be successful".asClue {
@@ -86,27 +86,27 @@ data class ExpectedViolation<T : Check<*>>(
 )
 
 inline fun <reified T : Check<*>> Any?.violated(
-    noinline underPath: ValidationPathBuilder? = null,
-    noinline withMessageThat: (String) -> Unit = {},
+    noinline configuration: ViolationAssertionsDsl.() -> Unit,
 ): ExpectedViolation<T> =
-    ExpectedViolation(
-        value = this,
-        path = validationPath((underPath ?: { root })),
-        check = T::class.checkKey(),
-        errorMessageAssertions = withMessageThat
-    )
+    violated(T::class, configuration)
 
-inline fun <reified T : Check<*>> Any?.violated(
-    noinline underPath: ValidationPathBuilder? = null,
-    withMessage: String,
+fun <T : Check<*>> Any?.violated(
+    checkType: KClass<T>,
+    configuration: ViolationAssertionsDsl.() -> Unit,
 ): ExpectedViolation<T> =
-    violated(underPath) { it shouldBe withMessage }
+    ViolationAssertionsDsl().apply(configuration).let {
+        ExpectedViolation(
+            value = this,
+            path = it.expectedValidationPath,
+            check = checkType.checkKey(),
+            errorMessageAssertions = it.errorMessageAssertions
+        )
+    }
 
 fun Any?.failed(
-    underPath: ValidationPathBuilder? = null,
-    withMessage: String,
+    configuration: ViolationAssertionsDsl.() -> Unit,
 ): ExpectedViolation<AlwaysFailingCheck> =
-    violated(underPath, withMessage)
+    violated(AlwaysFailingCheck::class, configuration)
 
 fun Violation<*, *>.debugString() =
     buildString {

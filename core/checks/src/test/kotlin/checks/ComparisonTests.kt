@@ -2,7 +2,6 @@ package io.dwsoft.checkt.core.checks
 
 import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -12,41 +11,29 @@ import io.kotest.property.arbitrary.next
 import io.kotest.property.exhaustive.of
 
 class ComparisonTests : FreeSpec({
-    testsFor<LessThan<Any>, _, _>(
-        runFor = comparisonCases(),
-        checking = { first },
-        validWhen = { it < second },
-        check = { LessThan(second) },
-        rule = { lessThan(it.second) },
-        violationMessage = { it shouldContain "Value must be less than $second" }
-    )
+    testsFor(comparisonCases()) {
+        fromCase(take = { first }) {
+            check { LessThan(case.second) } shouldPassWhen { value < case.second }
 
-    testsFor<LessThanOrEqual<Any>, _, _>(
-        runFor = comparisonCases(),
-        checking = { first },
-        validWhen = { it <= second },
-        check = { LessThanOrEqual(second) },
-        rule = { notGreaterThan(it.second) },
-        violationMessage = { it shouldContain "Value must not be greater than $second" }
-    )
+            rule { lessThan(case.second) } shouldPassWhen { value < case.second } orFail
+                    { withMessage("Value must be less than ${case.second}") }
 
-    testsFor<GreaterThan<Any>, _, _>(
-        runFor = comparisonCases(),
-        checking = { first },
-        validWhen = { it > second },
-        check = { GreaterThan(second) },
-        rule = { greaterThan(it.second) },
-        violationMessage = { it shouldContain "Value must be greater than $second" }
-    )
+            check { LessThanOrEqual(case.second) } shouldPassWhen { value <= case.second }
 
-    testsFor<GreaterThanOrEqual<Any>, _, _>(
-        runFor = comparisonCases(),
-        checking = { first },
-        validWhen = { it >= second },
-        check = { GreaterThanOrEqual(second) },
-        rule = { notLessThan(it.second) },
-        violationMessage = { it shouldContain "Value must not be less than $second" }
-    )
+            rule { notGreaterThan(case.second) } shouldPassWhen { value <= case.second } orFail
+                    { withMessage("Value must not be greater than ${case.second}") }
+
+            check { GreaterThan(case.second) } shouldPassWhen { value > case.second }
+
+            rule { greaterThan(case.second) } shouldPassWhen { value > case.second } orFail
+                    { withMessage("Value must be greater than ${case.second}") }
+
+            check { GreaterThanOrEqual(case.second) } shouldPassWhen { value >= case.second }
+
+            rule { notLessThan(case.second) } shouldPassWhen { value >= case.second } orFail
+                    { withMessage("Value must not be less than ${case.second}") }
+        }
+    }
 })
 
 private fun comparisonCases(): Gen<Pair<Comparable<Any>, Any>> {

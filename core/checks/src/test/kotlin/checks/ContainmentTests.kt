@@ -2,7 +2,6 @@ package io.dwsoft.checkt.core.checks
 
 import io.dwsoft.checkt.testing.testsFor
 import io.kotest.core.spec.style.FreeSpec
-import io.kotest.matchers.string.shouldContain
 import io.kotest.property.Arb
 import io.kotest.property.Exhaustive
 import io.kotest.property.Gen
@@ -18,32 +17,24 @@ import io.kotest.property.exhaustive.merge
 import io.kotest.property.exhaustive.of
 
 class ContainmentTests : FreeSpec({
-    testsFor<ContainsAny<Any>, _, _>(
-        runFor = containmentCases(),
-        checking = { collection },
-        validWhen = { it containsAnyOf other },
-        check = { ContainsAny(other) },
-        rule = { containsAnyOf(it.other) },
-        violationMessage = { it shouldContain "Collection must contain any of elements specified" }
-    )
+    testsFor(containmentCases()) {
+        fromCase(take = { collection }) {
+            check { ContainsAny(case.other) } shouldPassWhen { value containsAnyOf case.other }
 
-    testsFor<ContainsAll<Any>, _, _>(
-        runFor = containmentCases(),
-        checking = { collection },
-        validWhen = { it containsAllOf other },
-        check = { ContainsAll(other) },
-        rule = { containsAllOf(it.other) },
-        violationMessage = { it shouldContain "Collection must contain all of elements specified" }
-    )
+            rule { containsAnyOf(case.other) } shouldPassWhen { value containsAnyOf case.other } orFail
+                    { withMessage("Collection must contain any of elements specified") }
 
-    testsFor<ContainsNone<Any>, _, _>(
-        runFor = containmentCases(),
-        checking = { collection },
-        validWhen = { it containsNoneOf other },
-        check = { ContainsNone(other) },
-        rule = { containsNoneOf(it.other) },
-        violationMessage = { it shouldContain "Collection must not contain any of elements specified" }
-    )
+            check { ContainsAll(case.other) } shouldPassWhen { value containsAllOf case.other }
+
+            rule { containsAllOf(case.other) } shouldPassWhen { value containsAllOf case.other } orFail
+                    { withMessage("Collection must contain all of elements specified") }
+
+            check { ContainsNone(case.other) } shouldPassWhen { value containsNoneOf case.other }
+
+            rule { containsNoneOf(case.other) } shouldPassWhen { value containsNoneOf case.other } orFail
+                    { withMessage("Collection must not contain any of elements specified") }
+        }
+    }
 })
 
 private fun containmentCases(): Gen<ContainmentCase> {

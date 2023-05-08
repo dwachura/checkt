@@ -71,7 +71,7 @@ typealias LazyViolation<C, V> = suspend (ValidationPath) -> Violation<C, V>?
  * All custom rule factories functions should be defined as an extensions
  * of this interface.
  */
-sealed interface ValidationRules<out V> {
+interface ValidationRules<out V> {
     fun <T> rule(block: ValidationRules<T>.() -> ValidationRule<T, *>):
             ValidationRule<T, *> =
         rulesFor<T>().block()

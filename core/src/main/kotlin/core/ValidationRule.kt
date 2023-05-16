@@ -4,8 +4,9 @@ package io.dwsoft.checkt.core
  * Validation rules are objects that combines [validation condition][Check]
  * together with [error message][errorMessage].
  *
- * Custom validation rules should be defined as an extensions of
- * [validation rules "namespace"][ValidationRules].
+ * Custom validation rules may be defined as an extensions of
+ * [validation rules "namespace"][ValidationRules] to make them available 
+ * easier in validation DSL.
  */
 class ValidationRule<in V, C : Check<*>> private constructor(
     val check: C,
@@ -68,8 +69,8 @@ typealias LazyViolation<C, V> = suspend (ValidationPath) -> Violation<C, V>?
  * "Namespace" introduced to provide common and easy access to
  * [ValidationRule]-related functions.
  *
- * All custom rule factories functions should be defined as an extensions
- * of this interface.
+ * Custom rule factories functions could be defined as an extensions
+ * of this interface for better access in validation DSL.
  */
 interface ValidationRules<out V> {
     fun <T> rule(block: ValidationRules<T>.() -> ValidationRule<T, *>):

@@ -1,23 +1,17 @@
 package io.dwsoft.checkt.core
 
-import kotlin.reflect.KClass
-
-data class Violation<C : Check<*>, V>(
+data class Violation<D : ValidationRule.Descriptor<V, C>, V, C : Check<*>>(
     val value: V,
-    val context: ValidationContext<C>,
+    val context: ValidationContext<D, C>,
     val errorMessage: String,
 )
 
-@Suppress("UNCHECKED_CAST")
-fun <T : Check<V>, V, R> Violation<*, *>.ifFailedFor(
-    checkType: KClass<T>,
-    then: Violation<T, V>.() -> R
+fun <D : ValidationRule.Descriptor<V, C>, R, V, C : Check<V>> Violation<*, *, *>.ifFailedFor(
+    ruleDescriptor: D,
+    then: Violation<D, V, C>.() -> R
 ): R? =
-    takeIf { it.context.key.checkClass == checkType }
-        ?.let { it as? Violation<T, V> }
-        ?.then()
-
-inline fun <reified T : Check<V>, V, R> Violation<*, *>.ifFailedFor(
-    noinline then: Violation<T, V>.() -> R
-): R? =
-    ifFailedFor(T::class, then)
+    takeIf { it.context.descriptor == ruleDescriptor }
+        ?.let {
+            @Suppress("UNCHECKED_CAST")
+            it as? Violation<D, V, C>
+        }?.then()

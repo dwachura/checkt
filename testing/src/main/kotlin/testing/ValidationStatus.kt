@@ -2,9 +2,9 @@ package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
+import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationStatus
 import io.dwsoft.checkt.core.Violation
-import io.dwsoft.checkt.core.checkKey
 import io.dwsoft.checkt.core.joinToString
 import io.dwsoft.checkt.core.toValidationStatus
 import io.kotest.assertions.asClue
@@ -14,7 +14,6 @@ import io.kotest.inspectors.forAny
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.collections.shouldNotBeEmpty
 import io.kotest.matchers.types.shouldBeInstanceOf
-import kotlin.reflect.KClass
 
 fun ValidationStatus.shouldBeValid() {
     "Validation should be successful".asClue {
@@ -34,15 +33,15 @@ fun ValidationStatus.shouldBeInvalid(
         }
 
 fun ValidationStatus.shouldBeInvalidBecause(
-    vararg expectedViolations: ExpectedViolation<*>,
+    vararg expectedViolations: ExpectedViolation<*, *>,
 ) = shouldBeInvalidBecause(expectedViolations.toList(), false)
 
 fun ValidationStatus.shouldBeInvalidExactlyBecause(
-    vararg expectedViolations: ExpectedViolation<*>,
+    vararg expectedViolations: ExpectedViolation<*, *>,
 ) = shouldBeInvalidBecause(expectedViolations.toList(), true)
 
 private fun ValidationStatus.shouldBeInvalidBecause(
-    expectedViolations: List<ExpectedViolation<*>>,
+    expectedViolations: List<ExpectedViolation<*, *>>,
     checkViolationsCount: Boolean,
 ): ValidationStatus.Invalid =
     shouldBeInvalid(if (checkViolationsCount) expectedViolations.size else null)
@@ -50,22 +49,22 @@ private fun ValidationStatus.shouldBeInvalidBecause(
             assertSoftly {
                 expectedViolations.forEach { expectedViolation ->
                     val (expectedValue, expectedPath) = expectedViolation
-                    val expectedCheck = expectedViolation.check
+                    val expectedRule = expectedViolation.rule
                     val readableExpectedPath = expectedPath.joinToString()
                     val violationsOnPath = withClue(
-                        "Violation of ${expectedCheck.shortIdentifier} by value '$expectedValue' " +
+                        "Violation of ${expectedRule.name} by value '$expectedValue' " +
                                 "on path '$readableExpectedPath' not found"
                     ) {
                         "Actual violations: ${this.debugString()}".asClue {
                             violations.filter {
                                 it.context.path == expectedPath
-                                        && it.context.key == expectedCheck
+                                        && it.context.descriptor == expectedRule
                                         && it.value == expectedValue
                             }.shouldNotBeEmpty()
                         }
                     }
                     withClue(
-                        "Asserting error message of ${expectedCheck.shortIdentifier} violation on path " +
+                        "Asserting error message of ${expectedRule.name} violation on path " +
                                 "'$readableExpectedPath' (value: '$expectedValue')"
                     ) {
                         "Actual: ${violationsOnPath.debugString()}".asClue {
@@ -78,40 +77,35 @@ private fun ValidationStatus.shouldBeInvalidBecause(
             }
         }
 
-data class ExpectedViolation<T : Check<*>>(
+data class ExpectedViolation<D : ValidationRule.Descriptor<*, C>, C : Check<*>>(
     val value: Any?,
     val path: ValidationPath,
-    val check: Check.Key<T>,
+    val rule: D,
     val errorMessageAssertions: (String) -> Unit,
 )
 
-inline fun <reified T : Check<*>> Any?.violated(
-    noinline configuration: ViolationAssertionsDsl.() -> Unit,
-): ExpectedViolation<T> =
-    violated(T::class, configuration)
-
-fun <T : Check<*>> Any?.violated(
-    checkType: KClass<T>,
+fun <D : ValidationRule.Descriptor<*, C>, C : Check<*>> Any?.violated(
+    descriptor: D,
     configuration: ViolationAssertionsDsl.() -> Unit,
-): ExpectedViolation<T> =
+): ExpectedViolation<D, C> =
     ViolationAssertionsDsl().apply(configuration).let {
         ExpectedViolation(
             value = this,
             path = it.expectedValidationPath,
-            check = checkType.checkKey(),
+            rule = descriptor,
             errorMessageAssertions = it.errorMessageAssertions
         )
     }
 
 fun Any?.failed(
     configuration: ViolationAssertionsDsl.() -> Unit,
-): ExpectedViolation<AlwaysFailingCheck> =
-    violated(AlwaysFailingCheck::class, configuration)
+): ExpectedViolation<AlwaysFailing.Rule, AlwaysFailing.Check> =
+    violated(AlwaysFailing.Rule, configuration)
 
-fun Violation<*, *>.debugString() =
+fun Violation<*, *, *>.debugString() =
     buildString {
         append("{ ")
-        append("check: '${context.key.shortIdentifier}', ")
+        append("rule: '${context.descriptor}', ")
         append("path: '${context.path.joinToString()}', ")
         append("value: '$value', ")
         append("message: '${errorMessage}', ")
@@ -124,4 +118,4 @@ fun ValidationStatus.debugString() =
         is ValidationStatus.Invalid -> this.violations.joinToString { it.debugString() }
     }
 
-fun Collection<Violation<*, *>>.debugString() = toList().toValidationStatus().debugString()
+fun Collection<Violation<*, *, *>>.debugString() = toList().toValidationStatus().debugString()

@@ -18,6 +18,7 @@ import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.string
+import io.mockk.mockk
 
 class ValidationTests : FreeSpec({
     data class Dto(
@@ -167,7 +168,7 @@ class ValidationTests : FreeSpec({
 
             val spec = validation<Dto> {
                 require(the::simpleValue) {
-                    +ThrowingCheck(expectedException).toValidationRule { "" }
+                    +ThrowingCheck(expectedException).toValidationRule(mockk()) { "" }
                 }
             }
 

@@ -1,6 +1,5 @@
 package io.dwsoft.checkt.testing
 
-import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ParameterizedCheck
 import io.dwsoft.checkt.core.ValidationRule
@@ -14,11 +13,11 @@ import io.kotest.core.spec.style.scopes.RootScope
 import io.kotest.core.spec.style.scopes.addTest
 import io.kotest.matchers.shouldBe
 import io.kotest.property.Gen
-import kotlin.reflect.KClass
+import io.dwsoft.checkt.core.Check as CheckBase
 
-suspend infix fun <T> T.shouldPass(check: Check<T>) =
-    "Value '$this' should pass check ${check.key.fullIdentifier}".asClue {
-        val assertion: (Check.Result) -> Unit =
+suspend infix fun <T> T.shouldPass(check: CheckBase<T>) =
+    "Value '$this' should pass check ${check.key.id}".asClue {
+        val assertion: (CheckBase.Result) -> Unit =
             { it.passed shouldBe true }
         when (check) {
             is ParameterizedCheck<T, *> -> {
@@ -30,9 +29,9 @@ suspend infix fun <T> T.shouldPass(check: Check<T>) =
         }
     }
 
-suspend infix fun <T> T.shouldNotPass(check: Check<T>) =
-    "Value '$this' should not pass check ${check.key.fullIdentifier}".asClue {
-        val assertion: (Check.Result) -> Unit =
+suspend infix fun <T> T.shouldNotPass(check: CheckBase<T>) =
+    "Value '$this' should not pass check ${check.key.id}".asClue {
+        val assertion: (CheckBase.Result) -> Unit =
             { it.passed shouldBe false }
         when (check) {
             is ParameterizedCheck<T, *> -> {
@@ -44,20 +43,26 @@ suspend infix fun <T> T.shouldNotPass(check: Check<T>) =
         }
     }
 
-val <T> ValidationRules<T>.fail
-    get() = failWithMessage { "$value invalid" }
+object AlwaysFailing {
+    object Check : CheckBase<Any?> by CheckBase({ false })
+    object Rule : ValidationRule.Descriptor<Any?, Check>(Check)
+}
 
 fun <T> ValidationRules<T>.failWithMessage(
-    errorMessage: LazyErrorMessage<AlwaysFailingCheck, Any?>
-): ValidationRule<T, AlwaysFailingCheck> =
-    AlwaysFailingCheck.toValidationRule(errorMessage)
+    errorMessage: LazyErrorMessage<AlwaysFailing.Rule, Any?, AlwaysFailing.Check>
+): ValidationRule<AlwaysFailing.Rule, T, AlwaysFailing.Check> =
+    AlwaysFailing.Check.toValidationRule(AlwaysFailing.Rule, errorMessage)
 
-object AlwaysFailingCheck : Check<Any?> by Check({ false })
+val <T> ValidationRules<T>.fail: ValidationRule<AlwaysFailing.Rule, T, AlwaysFailing.Check>
+    get() = failWithMessage { "$value invalid" }
 
-val <T> ValidationRules<T>.pass
-    get() = AlwaysPassingCheck.toValidationRule { "" }
+object AlwaysPassing {
+    object Check : CheckBase<Any?> by CheckBase({ true })
+    object Rule : ValidationRule.Descriptor<Any?, Check>(Check)
+}
 
-object AlwaysPassingCheck : Check<Any?> by Check({ true })
+val <T> ValidationRules<T>.pass: ValidationRule<AlwaysPassing.Rule, T, AlwaysPassing.Check>
+    get() = AlwaysPassing.Check.toValidationRule(AlwaysPassing.Rule) { "" }
 
 fun <T> RootScope.testsFor(cases: Gen<T>, configuration: ChecktTesting<T>.() -> Unit) {
     ChecktTesting<T>().apply(configuration).tests.forEach { (valueExtractor, tests) ->
@@ -116,69 +121,71 @@ class ChecktTestScope<C, V> {
     private val _tests: MutableList<ChecktTest<C, V>> = mutableListOf()
     internal val tests: List<ChecktTest<C, V>> by ::_tests
 
-    inline fun <reified T : Check<V>, reified V> check(
-        noinline check: TestedCheckFactory<C, V, T>
-    ): PartialCheckTestConfig<C, V, T> =
+    inline fun <reified T : CheckBase<V>, reified V> check(
+        noinline check: TestedCheckFactory<T, C, V>
+    ): PartialCheckTestConfig<T, C, V> =
         PartialCheckTestConfig(
             testName = "Check ${T::class.simpleName} taking ${V::class.simpleName} works",
             factory = check
         )
 
-    infix fun <T : Check<V>> PartialCheckTestConfig<C, V, T>.shouldPassWhen(
+    infix fun <T : CheckBase<V>> PartialCheckTestConfig<T, C, V>.shouldPassWhen(
         predicate: PassWhenPredicate<C, V>
     ): Unit =
         test(testName, factory, predicate)
 
-    private fun test(
+    private fun <T : CheckBase<V>> test(
         name: String,
-        check: ChecktTestContext<C, V>.() -> Check<V>,
-        shouldPassWhen: PassWhenPredicate<C, V>,
+        checkFactory: TestedCheckFactory<T, C, V>,
+        shouldPassPredicate: PassWhenPredicate<C, V>,
     ) {
         _tests += ChecktTest(name) {
-            check().let { check ->
+            checkFactory().let { check ->
                 when {
-                    shouldPassWhen() -> value shouldPass check
+                    shouldPassPredicate() -> value shouldPass check
                     else -> value shouldNotPass check
                 }
             }
         }
     }
 
-    fun <T : Check<*>> rule(rule: TestedRuleFactory<C, V, T>): TestedRuleFactory<C, V, T> =
+    fun <D, T> rule(rule: TestedRuleFactory<D, C, V, T>): TestedRuleFactory<D, C, V, T>
+            where D : ValidationRule.Descriptor<V, T>, T : CheckBase<*> =
         rule
 
-    inline infix fun <reified T : Check<*>, reified V> TestedRuleFactory<C, V, T>.shouldPassWhen(
+    inline infix fun <reified D, reified T, reified V> TestedRuleFactory<D, C, V, T>.shouldPassWhen(
         noinline predicate: PassWhenPredicate<C, V>
-    ): PartialRuleTestConfig<C, V, T> =
+    ): PartialRuleTestConfig<D, C, V, T>
+            where D : ValidationRule.Descriptor<V, T>, T : CheckBase<*> =
         PartialRuleTestConfig(
-            T::class,
             "Validation rule for ${T::class.simpleName} taking ${V::class.simpleName} works",
             this,
             predicate
         )
 
-    infix fun <T : Check<*>> PartialRuleTestConfig<C, V, T>.orFail(
+    infix fun <D, T> PartialRuleTestConfig<D, C, V, T>.orFail(
         expectations: ViolationExpectation<C, V>
-    ): Unit =
-        test(checkType, testName, factory, predicate, expectations)
+    ): Unit
+            where D : ValidationRule.Descriptor<V, T>, T : CheckBase<*> =
+        test(testName, factory, predicate, expectations)
 
-    private fun <T : Check<*>> test(
-        checkType: KClass<T>,
+    private fun <D : ValidationRule.Descriptor<V, T>, T : CheckBase<*>> test(
         name: String,
-        rule: ChecktTestContext<C, V>.() -> ValidationRule<V, T>,
-        shouldPassWhen: PassWhenPredicate<C, V>,
-        with: ViolationExpectation<C, V>,
+        ruleFactory: TestedRuleFactory<D, C, V, T>,
+        shouldPassPredicate: PassWhenPredicate<C, V>,
+        violationExpectation: ViolationExpectation<C, V>,
     ) {
         _tests += ChecktTest(name) {
+            val rule = ruleFactory()
             testValidation(
                 of = value,
-                with = validation { +rule() }
+                with = validation { +rule }
             ) {
                 when {
-                    shouldPassWhen() -> result.shouldBeValid()
+                    shouldPassPredicate() -> result.shouldBeValid()
                     else -> result.shouldBeInvalidBecause(
-                        value.violated(checkType) {
-                            ViolationExpectationsContext(case, value, this).with()
+                        value.violated(rule.descriptor) {
+                            ViolationExpectationsContext(case, value, this).violationExpectation()
                         }
                     )
                 }
@@ -189,32 +196,31 @@ class ChecktTestScope<C, V> {
 
 class ChecktTestContext<C, V>(val case: C, val value: V) : ValidationRules<V>
 
-class ViolationExpectationsContext<C, V>(
-    val case: C,
-    val value: V,
+class ViolationExpectationsContext<CASE, VALUE>(
+    val case: CASE,
+    val value: VALUE,
     assertionsDsl: ViolationAssertionsDsl,
 ) : ViolationAssertionsDsl by assertionsDsl
 
-class PartialCheckTestConfig<CASE, VALUE, CHECK : Check<VALUE>>(
+class PartialCheckTestConfig<CHECK, CASE, VALUE>(
     internal val testName: String,
-    internal val factory: TestedCheckFactory<CASE, VALUE, CHECK>,
-)
+    internal val factory: TestedCheckFactory<CHECK, CASE, VALUE>,
+) where CHECK : CheckBase<VALUE>
 
-class PartialRuleTestConfig<CASE, VALUE, CHECK : Check<*>>(
-    internal val checkType: KClass<CHECK>,
+class PartialRuleTestConfig<DESCRIPTOR, CASE, VALUE, CHECK>(
     internal val testName: String,
-    internal val factory: TestedRuleFactory<CASE, VALUE, CHECK>,
+    internal val factory: TestedRuleFactory<DESCRIPTOR, CASE, VALUE, CHECK>,
     internal val predicate: PassWhenPredicate<CASE, VALUE>,
-)
+) where DESCRIPTOR : ValidationRule.Descriptor<VALUE, CHECK>, CHECK : CheckBase<*>
 
-private typealias TestedCheckFactory<CASE, VALUE, CHECK> =
+private typealias TestedCheckFactory<CHECK, CASE, VALUE> =
         ChecktTestContext<CASE, VALUE>.() -> CHECK
 
 private typealias ViolationExpectation<CASE, VALUE> =
         ViolationExpectationsContext<CASE, VALUE>.() -> Unit
 
-private typealias TestedRuleFactory<CASE, VALUE, CHECK> =
-        ChecktTestContext<CASE, VALUE>.() -> ValidationRule<VALUE, CHECK>
+private typealias TestedRuleFactory<DESCRIPTOR, CASE, VALUE, CHECK> =
+        ChecktTestContext<CASE, VALUE>.() -> ValidationRule<DESCRIPTOR, VALUE, CHECK>
 
 private typealias PassWhenPredicate<CASE, VALUE> =
         ChecktTestContext<CASE, VALUE>.() -> Boolean

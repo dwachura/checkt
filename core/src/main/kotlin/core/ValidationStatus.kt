@@ -13,10 +13,10 @@ sealed class ValidationStatus {
         override fun plus(other: ValidationStatus) = other
     }
 
-    data class Invalid(val violations: List<Violation<*, *>>) : ValidationStatus() {
+    data class Invalid(val violations: List<Violation<*, *, *>>) : ValidationStatus() {
         constructor(
-            violation: Violation<*, *>,
-            vararg violations: Violation<*, *>
+            violation: Violation<*, *, *>,
+            vararg violations: Violation<*, *, *>
         ) : this(buildList {
             add(violation)
             addAll(violations)
@@ -30,11 +30,11 @@ sealed class ValidationStatus {
     }
 }
 
-fun List<Violation<*, *>>.toValidationStatus(): ValidationStatus =
+fun List<Violation<*, *, *>>.toValidationStatus(): ValidationStatus =
     if (this.isEmpty()) Valid else Invalid(this)
 
-fun <C : Check<*>, V>
-        Violation<C, V>?.toValidationStatus(): ValidationStatus =
+fun <D : ValidationRule.Descriptor<V, C>, V, C : Check<*>>
+        Violation<D, V, C>?.toValidationStatus(): ValidationStatus =
     when (this) {
         null -> emptyList()
         else -> listOf(this)
@@ -48,7 +48,7 @@ fun Collection<ValidationStatus>.fold(): ValidationStatus =
 fun Invalid.errorMessages(): List<String> =
     violations.map { it.errorMessage }
 
-data class ValidationInvalid(val violations: List<Violation<*, *>>) : RuntimeException()
+data class ValidationInvalid(val violations: List<Violation<*, *, *>>) : RuntimeException()
 
 fun ValidationStatus.throwIfInvalid(): Unit =
     when (this) {

@@ -12,24 +12,32 @@ class Equals<V>(other: V) : ParameterizedCheck<V, Equals.Params<V>> by (
         Params(other) and { it == other }
 ) {
     data class Params<V>(val other: V) : ParamsOf<Equals<V>, Params<V>>
+
+    class RuleDescriptor<T>(check: Equals<T>) : ValidationRule.Descriptor<T, Equals<T>>(check)
 }
 
 fun <T> ValidationRules<T>.equalTo(
     other: T,
-    errorMessage: LazyErrorMessage<Equals<T>, T> =
+    errorMessage: LazyErrorMessage<Equals.RuleDescriptor<T>, T, Equals<T>> =
         { "Value must equal to ${context.params.other}" },
-): ValidationRule<T, Equals<T>> =
-    Equals(other).toValidationRule(errorMessage)
+): ValidationRule<Equals.RuleDescriptor<T>, T, Equals<T>> =
+    Equals(other).let {
+        it.toValidationRule(Equals.RuleDescriptor(it), errorMessage)
+    }
 
 class IsDifferent<V>(other: V) : ParameterizedCheck<V, IsDifferent.Params<V>> by (
         Params(other) and { it != other }
 ) {
     data class Params<V>(val other: V) : ParamsOf<IsDifferent<V>, Params<V>>
+
+    class RuleDescriptor<T>(check: IsDifferent<T>) : ValidationRule.Descriptor<T, IsDifferent<T>>(check)
 }
 
 fun <T> ValidationRules<T>.differentThan(
     other: T,
-    errorMessage: LazyErrorMessage<IsDifferent<T>, T> =
+    errorMessage: LazyErrorMessage<IsDifferent.RuleDescriptor<T>, IsDifferent<T>, T> =
         { "Value must be different than ${context.params.other}" },
-): ValidationRule<T, IsDifferent<T>> =
-    IsDifferent(other).toValidationRule(errorMessage)
+): ValidationRule<IsDifferent.RuleDescriptor<T>, T, IsDifferent<T>> =
+    IsDifferent(other).let {
+        it.toValidationRule(IsDifferent.RuleDescriptor(it), errorMessage)
+    }

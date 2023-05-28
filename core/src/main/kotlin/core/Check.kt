@@ -20,8 +20,8 @@ interface Check<in V> {
      * Unique key for [Check] type.
      */
     data class Key<C : Check<*>>(val checkClass: KClass<out C>) {
-        val shortIdentifier: String = checkClass.java.simpleName
-        val fullIdentifier: String = checkClass.java.canonicalName
+        val id: String = checkClass.java.canonicalName
+        val name: String = checkClass.java.simpleName
     }
 
     companion object {

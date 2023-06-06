@@ -14,7 +14,7 @@ import io.kotest.property.exhaustive.of
 
 class RangeTests : FreeSpec({
     testsFor(casesFor(anyRange())) {
-        fromCase(take = { element }) {
+        taking { element } asValue {
             check { InRange(case.range) } shouldPassWhen { value in case.range }
 
             rule { inRange(case.range) } shouldPassWhen { value in case.range } orFail {

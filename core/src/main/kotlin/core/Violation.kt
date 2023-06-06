@@ -10,7 +10,7 @@ fun <D : ValidationRule.Descriptor<V, C>, R, V, C : Check<V>> Violation<*, *, *>
     ruleDescriptor: D,
     then: Violation<D, V, C>.() -> R
 ): R? =
-    takeIf { it.context.descriptor == ruleDescriptor }
+    takeIf { it.context.descriptor.id == ruleDescriptor.id }
         ?.let {
             @Suppress("UNCHECKED_CAST")
             it as? Violation<D, V, C>

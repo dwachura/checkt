@@ -11,16 +11,16 @@ import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.string
 import io.kotest.property.exhaustive.of
 
-class EmptiableTests : FreeSpec({
-    testsFor(anyEmptiable()) {
-        onCase {
+class ContainerTests : FreeSpec({
+    testsFor(anyContainer()) {
+        takingCaseAsValue {
             check { NotEmpty } shouldPassWhen { value.isNotEmpty() }
 
             check { Empty } shouldPassWhen { value.isEmpty() }
         }
     }
-    testsFor(emptiableCasesFor<String>()) {
-        onCase {
+    testsFor(containersCreatedFrom<String>()) {
+        takingCaseAsValue {
             rule { notEmpty() } shouldPassWhen { value.isNotEmpty() } orFail
                     { withMessage("Value must not be empty") }
 
@@ -28,40 +28,40 @@ class EmptiableTests : FreeSpec({
                     { withMessage("Value must be empty") }
         }
     }
-    testsFor(emptiableCasesFor<Collection<Any>>()) {
-        onCase {
+    testsFor(containersCreatedFrom<Collection<Any>>()) {
+        takingCaseAsValue {
             rule { notEmpty() } shouldPassWhen { value.isNotEmpty() } orFail
-                    { withMessage("Collection must not be empty") }
+                    { withMessage("Value must not be empty") }
 
             rule { empty() } shouldPassWhen { value.isEmpty() } orFail
-                    { withMessage("Collection must be empty") }
+                    { withMessage("Value must be empty") }
         }
     }
-    testsFor(emptiableCasesFor<Array<Any>>()) {
-        onCase {
+    testsFor(containersCreatedFrom<Array<Any>>()) {
+        takingCaseAsValue {
             rule { notEmpty() } shouldPassWhen { value.isNotEmpty() } orFail
-                    { withMessage("Array must not be empty") }
+                    { withMessage("Value must not be empty") }
 
             rule { empty() } shouldPassWhen { value.isEmpty() } orFail
-                    { withMessage("Array must be empty") }
+                    { withMessage("Value must be empty") }
         }
     }
 })
 
-private fun anyEmptiable(): Gen<Emptiable> =
+private fun anyContainer(): Gen<Container> =
     Exhaustive.of(
-        Emptiable { true }, // empty
-        Emptiable { false }, // non-empty
+        Container { true }, // empty
+        Container { false }, // non-empty
     )
 
 @Suppress("UNCHECKED_CAST")
-private inline fun <reified T> emptiableCasesFor(): Exhaustive<T> =
+private inline fun <reified T> containersCreatedFrom(): Exhaustive<T> =
     when (T::class) {
         String::class -> Exhaustive.of(emptyString, notEmptyString())
         Collection::class -> Exhaustive.of(emptyCollection, notEmptyCollection())
         Array::class -> Exhaustive.of(emptyArray, notEmptyArray())
         else -> throw IllegalArgumentException(
-            "Type ${T::class.qualifiedName} doesn't support ${Emptiable::class.qualifiedName}"
+            "Type ${T::class.qualifiedName} doesn't support ${Container::class.qualifiedName}"
         )
     } as Exhaustive<T>
 

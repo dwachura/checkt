@@ -18,7 +18,7 @@ import io.kotest.property.exhaustive.of
 
 class ContainmentTests : FreeSpec({
     testsFor(containmentCases()) {
-        fromCase(take = { collection }) {
+        taking { collection } asValue {
             check { ContainsAny(case.other) } shouldPassWhen { value containsAnyOf case.other }
 
             rule { containsAnyOf(case.other) } shouldPassWhen { value containsAnyOf case.other } orFail

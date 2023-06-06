@@ -8,7 +8,7 @@ import io.kotest.property.exhaustive.of
 
 class BooleansTests : FreeSpec({
     testsFor(booleanCases()) {
-        onCase {
+        takingCaseAsValue {
             rule { beTrue() } shouldPassWhen { value.isTrue() } orFail {
                 withMessage("Value must be true")
             }

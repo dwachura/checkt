@@ -45,7 +45,7 @@ suspend infix fun <T> T.shouldNotPass(check: CheckBase<T>) =
 
 object AlwaysFailing {
     object Check : CheckBase<Any?> by CheckBase({ false })
-    object Rule : ValidationRule.Descriptor<Any?, Check>(Check)
+    object Rule : ValidationRule.Descriptor<Any?, Check>(Check::class)
 }
 
 fun <T> ValidationRules<T>.failWithMessage(
@@ -58,7 +58,7 @@ val <T> ValidationRules<T>.fail: ValidationRule<AlwaysFailing.Rule, T, AlwaysFai
 
 object AlwaysPassing {
     object Check : CheckBase<Any?> by CheckBase({ true })
-    object Rule : ValidationRule.Descriptor<Any?, Check>(Check)
+    object Rule : ValidationRule.Descriptor<Any?, Check>(Check::class)
 }
 
 val <T> ValidationRules<T>.pass: ValidationRule<AlwaysPassing.Rule, T, AlwaysPassing.Check>
@@ -96,12 +96,14 @@ class ChecktTesting<T> {
         @Suppress("UNCHECKED_CAST")
         get() = _tests as List<ChecktTestConfig<T, Any>>
 
-    fun <V> fromCase(take: T.() -> V, configuration: ChecktTestScope<T, V>.() -> Unit) {
-        _tests += ChecktTestConfig(take, ChecktTestScope<T, V>().apply(configuration).tests)
+    fun <V> taking(asValue: T.() -> V): T.() -> V = asValue
+
+    infix fun <V> (T.() -> V).asValue(configuration: ChecktTestScope<T, V>.() -> Unit) {
+        _tests += ChecktTestConfig(this, ChecktTestScope<T, V>().apply(configuration).tests)
     }
 
-    fun onCase(configuration: ChecktTestScope<T, T>.() -> Unit) =
-        fromCase(take = { this }, configuration)
+    fun takingCaseAsValue(configuration: ChecktTestScope<T, T>.() -> Unit) =
+        taking { this } asValue(configuration)
 }
 
 /**

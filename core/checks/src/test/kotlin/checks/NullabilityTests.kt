@@ -15,7 +15,7 @@ import io.kotest.property.exhaustive.of
 
 class NullabilityTests : FreeSpec({
     testsFor(nullabilityCases()) {
-        onCase {
+        takingCaseAsValue {
             check { NotNull } shouldPassWhen { value != null }
 
             rule { notBeNull() } shouldPassWhen { value != null } orFail {
@@ -43,7 +43,7 @@ class NullabilityTests : FreeSpec({
             ) {
                 when (value) {
                     null -> result.shouldBeInvalidBecause(
-                        validated.violated<NotNull> { withMessage("1") }
+                        validated.violated(NotNull.RuleDescriptor) { withMessage("1") }
                     )
                     else -> result.shouldBeInvalidBecause(
                         validated.failed { withMessage("2") }

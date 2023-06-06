@@ -19,7 +19,7 @@ import kotlin.reflect.KClass
 
 class TemporalTests : FreeSpec({
     testsFor(anyTemporalCase()) {
-        fromCase(take = { temporal }) {
+        taking { temporal } asValue {
             check { Past(case::present) } shouldPassWhen { value < case.present }
             check { PastOrPresent(case::present) } shouldPassWhen { value <= case.present }
             check { Future(case::present) } shouldPassWhen { value > case.present }
@@ -28,7 +28,7 @@ class TemporalTests : FreeSpec({
     }
 
     testsFor(temporalCasesFor(Instant::class)) {
-        fromCase(take = { temporal.value }) {
+        taking { temporal.value } asValue {
             rule { past({ case.present.value }) } shouldPassWhen { value < case.present.value } orFail
                     { withMessageThat { it shouldContain "Date must represent past from ${case.present.iso8601}" } }
             rule { pastOrPresent({ case.present.value }) } shouldPassWhen { value <= case.present.value } orFail
@@ -41,7 +41,7 @@ class TemporalTests : FreeSpec({
     }
 
     testsFor(temporalCasesFor(LocalTime::class)) {
-        fromCase(take = { temporal.value }) {
+        taking { temporal.value } asValue {
             rule { past({ case.present.value }) } shouldPassWhen { value < case.present.value } orFail
                     { withMessageThat { it shouldContain "Date must represent past from ${case.present.iso8601}" } }
             rule { pastOrPresent({ case.present.value }) } shouldPassWhen { value <= case.present.value } orFail
@@ -54,7 +54,7 @@ class TemporalTests : FreeSpec({
     }
 
     testsFor(temporalCasesFor(OffsetTime::class)) {
-        fromCase(take = { temporal.value }) {
+        taking { temporal.value } asValue {
             rule { past({ case.present.value }) } shouldPassWhen { value < case.present.value } orFail
                     { withMessageThat { it shouldContain "Date must represent past from ${case.present.iso8601}" } }
             rule { pastOrPresent({ case.present.value }) } shouldPassWhen { value <= case.present.value } orFail
@@ -67,7 +67,7 @@ class TemporalTests : FreeSpec({
     }
 
     testsFor(temporalCasesFor(LocalDate::class)) {
-        fromCase(take = { temporal.value }) {
+        taking { temporal.value } asValue {
             rule { past({ case.present.value }) } shouldPassWhen { value < case.present.value } orFail
                     { withMessageThat { it shouldContain "Date must represent past from ${case.present.iso8601}" } }
             rule { pastOrPresent({ case.present.value }) } shouldPassWhen { value <= case.present.value } orFail
@@ -80,7 +80,7 @@ class TemporalTests : FreeSpec({
     }
 
     testsFor(temporalCasesFor(LocalDateTime::class)) {
-        fromCase(take = { temporal.value }) {
+        taking { temporal.value } asValue {
             rule { past({ case.present.value }) } shouldPassWhen { value < case.present.value } orFail
                     { withMessageThat { it shouldContain "Date must represent past from ${case.present.iso8601}" } }
             rule { pastOrPresent({ case.present.value }) } shouldPassWhen { value <= case.present.value } orFail
@@ -93,7 +93,7 @@ class TemporalTests : FreeSpec({
     }
 
     testsFor(temporalCasesFor(OffsetDateTime::class)) {
-        fromCase(take = { temporal.value }) {
+        taking { temporal.value } asValue {
             rule { past({ case.present.value }) } shouldPassWhen { value < case.present.value } orFail
                     { withMessageThat { it shouldContain "Date must represent past from ${case.present.iso8601}" } }
             rule { pastOrPresent({ case.present.value }) } shouldPassWhen { value <= case.present.value } orFail
@@ -106,7 +106,7 @@ class TemporalTests : FreeSpec({
     }
 
     testsFor(temporalCasesFor(ZonedDateTime::class)) {
-        fromCase(take = { temporal.value }) {
+        taking { temporal.value } asValue {
             rule { past({ case.present.value }) } shouldPassWhen { value < case.present.value } orFail
                     { withMessageThat { it shouldContain "Date must represent past from ${case.present.iso8601}" } }
             rule { pastOrPresent({ case.present.value }) } shouldPassWhen { value <= case.present.value } orFail
@@ -153,13 +153,13 @@ private fun <T : Any> temporalCasesFor(aClass: KClass<T>): Exhaustive<TemporalCa
     val `1d` = Period.ofDays(1)
     val `2d` = Period.ofDays(2)
     val (past, present, future) = when (aClass) {
-        Instant::class -> Instant.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.of(it) }
-        LocalTime::class -> LocalTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.of(it) }
-        OffsetTime::class -> OffsetTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.of(it) }
-        LocalDateTime::class -> LocalDateTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.of(it) }
-        OffsetDateTime::class -> OffsetDateTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.of(it) }
-        ZonedDateTime::class -> ZonedDateTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.of(it) }
-        LocalDate::class -> LocalDate.now() to { it + `1d` to it + `2d` } mapComponents { Temporal.of(it) }
+        Instant::class -> Instant.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.from(it) }
+        LocalTime::class -> LocalTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.from(it) }
+        OffsetTime::class -> OffsetTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.from(it) }
+        LocalDateTime::class -> LocalDateTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.from(it) }
+        OffsetDateTime::class -> OffsetDateTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.from(it) }
+        ZonedDateTime::class -> ZonedDateTime.now() to { it + `1s` to it + `2s` } mapComponents { Temporal.from(it) }
+        LocalDate::class -> LocalDate.now() to { it + `1d` to it + `2d` } mapComponents { Temporal.from(it) }
         else -> throw IllegalArgumentException(
             "Temporal for ${aClass.qualifiedName} is not defined"
         )

@@ -12,7 +12,7 @@ import io.kotest.property.exhaustive.of
 
 class NotBlankTests : FreeSpec({
     testsFor(blankTextCases()) {
-        onCase {
+        takingCaseAsValue {
             rule { notBlank() } shouldPassWhen { value.isNotBlank() } orFail {
                 withMessage("Value must not be blank")
             }

@@ -2,13 +2,17 @@ package io.dwsoft.checkt.samples
 
 import io.dwsoft.checkt.core.ValidationResult
 import io.dwsoft.checkt.core.ValidationStatus
+import io.dwsoft.checkt.core.checks.LessThan
+import io.dwsoft.checkt.core.checks.NotBlank
 import io.dwsoft.checkt.core.checks.bePositive
 import io.dwsoft.checkt.core.checks.inRange
 import io.dwsoft.checkt.core.checks.lessThan
 import io.dwsoft.checkt.core.checks.matchesRegex
 import io.dwsoft.checkt.core.checks.notBlank
 import io.dwsoft.checkt.core.getOrThrow
+import io.dwsoft.checkt.core.ifFailedFor
 import io.dwsoft.checkt.core.joinToString
+import io.dwsoft.checkt.core.params
 import io.dwsoft.checkt.core.requireUnlessNull
 import io.dwsoft.checkt.core.the
 import io.dwsoft.checkt.core.validate
@@ -37,7 +41,11 @@ fun main() = runBlocking {
 
     (dto.validate().getOrThrow() as? ValidationStatus.Invalid)
         ?.violations?.map {
-            "${it.context.path.joinToString(includeRoot = false)} - ${it.errorMessage} (was '${it.value}')"
+            it.ifFailedFor(NotBlank.RuleDescriptor) {
+                "String '$value' must not be blank"
+            } ?: it.ifFailedFor(LessThan.RuleDescriptor<Number>()) {
+                "Number '$value' must be less than ${context.params.max}"
+            } ?: "${it.context.path.joinToString(includeRoot = false)} - ${it.errorMessage} (was '${it.value}')"
         }?.forEach { println(it) }
         ?: println(dto)
 }

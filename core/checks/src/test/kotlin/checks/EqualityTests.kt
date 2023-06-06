@@ -8,7 +8,7 @@ import io.kotest.property.exhaustive.of
 
 class EqualityTests : FreeSpec({
     testsFor(equalityCases()) {
-        fromCase(take = { first }) {
+        taking { first } asValue {
             check { Equals(case.second) } shouldPassWhen { value == case.second }
 
             check { IsDifferent(case.second) } shouldPassWhen { value != case.second }

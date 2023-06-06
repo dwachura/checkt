@@ -20,7 +20,7 @@ import io.kotest.property.exhaustive.of
 
 class NumberSignTests : FreeSpec({
     testsFor(numberCases()) {
-        onCase {
+        takingCaseAsValue {
             rule { bePositive() } shouldPassWhen { value.toDouble() > 0.0 } orFail {
                 withMessage("Number must be positive")
             }

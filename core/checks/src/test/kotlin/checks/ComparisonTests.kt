@@ -12,7 +12,7 @@ import io.kotest.property.exhaustive.of
 
 class ComparisonTests : FreeSpec({
     testsFor(comparisonCases()) {
-        fromCase(take = { first }) {
+        taking { first } asValue {
             check { LessThan(case.second) } shouldPassWhen { value < case.second }
 
             rule { lessThan(case.second) } shouldPassWhen { value < case.second } orFail

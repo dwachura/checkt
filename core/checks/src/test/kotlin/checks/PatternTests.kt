@@ -15,7 +15,7 @@ import io.kotest.property.exhaustive.of
 
 class PatternTests : FreeSpec({
     testsFor(casesFor(anyRegex())) {
-        fromCase(take = { value }) {
+        taking { value } asValue {
             check { Pattern(case.regex) } shouldPassWhen { value matches case.regex }
 
             rule { matchesRegex(case.regex) } shouldPassWhen { value matches case.regex } orFail {

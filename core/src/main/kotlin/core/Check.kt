@@ -38,6 +38,9 @@ interface Check<in V> {
 fun <C : Check<*>> KClass<out C>.checkKey(): Check.Key<C> =
     Check.Key(this)
 
+inline fun <reified C : Check<*>> Check.Companion.key(): Check.Key<C> =
+    C::class.checkKey()
+
 val <C : Check<*>> C.key: Check.Key<C>
     get() = this::class.checkKey()
 

@@ -1,7 +1,5 @@
 package io.dwsoft.checkt.core
 
-import kotlin.reflect.KClass
-
 interface Check<in V> {
     suspend operator fun invoke(value: V): Result
 
@@ -16,18 +14,8 @@ interface Check<in V> {
         }
     }
 
-    /**
-     * Unique key for [Check] type.
-     */
-    data class Key<C : Check<*>>(val checkClass: KClass<out C>) {
-        val id: String = checkClass.java.canonicalName
-        val name: String = checkClass.java.simpleName
-    }
-
     companion object {
-        operator fun <C : Check<V>, V> invoke(
-            implementation: (value: V) -> Boolean
-        ): Check<V> =
+        operator fun <C : Check<V>, V> invoke(implementation: (value: V) -> Boolean): Check<V> =
             object : Check<V> {
                 override suspend fun invoke(value: V): Result =
                     Result(implementation(value))
@@ -35,24 +23,18 @@ interface Check<in V> {
     }
 }
 
-fun <C : Check<*>> KClass<out C>.checkKey(): Check.Key<C> =
-    Check.Key(this)
+val Check<*>.key: String
+    get() = this::class.java.canonicalName
 
-inline fun <reified C : Check<*>> Check.Companion.key(): Check.Key<C> =
-    C::class.checkKey()
-
-val <C : Check<*>> C.key: Check.Key<C>
-    get() = this::class.checkKey()
+val Check<*>.name: String
+    get() = this::class.java.simpleName
 
 interface ParamsOf<T : ParameterizedCheck<*, SELF>, SELF : ParamsOf<T, SELF>>
 
 interface ParameterizedCheck<in V, P : ParamsOf<*, P>> : Check<V> {
     override suspend fun invoke(value: V): Result<P>
 
-    class Result<P : ParamsOf<*, P>>(
-        override val passed: Boolean,
-        val params: P
-    ) : Check.Result
+    class Result<P : ParamsOf<*, P>>(override val passed: Boolean, val params: P) : Check.Result
 }
 
 infix fun <P : ParamsOf<out ParameterizedCheck<V, P>, P>, V> P.and(

@@ -35,10 +35,6 @@ class ValidationPathBuildingScope {
     val root: ValidationPath = ValidationPath()
     val `$` get() = root
 
-    operator fun String.unaryMinus(): ValidationPath = startPath(Segment(!this))
-
-    operator fun LazyTailAppender.unaryMinus(): ValidationPath = toPath()
-
     operator fun ValidationPath.div(name: String): ValidationPath = this + !name
 
     operator fun ValidationPath.div(block: LazyTailAppender): ValidationPath =

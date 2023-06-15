@@ -52,8 +52,8 @@ sealed class ValidationOf<V>(val subject: V) : ValidationRules<V> {
      * Checks the [currently validated value][subject] against given
      * [validation rule][this].
      */
-    suspend operator fun <D, C> ValidationRule<D, V, C>.unaryPlus(): ValidationStatus
-            where D : ValidationRule.Descriptor<V, C>, C : Check<*> =
+    suspend operator fun <D, C> ValidationRule<D, V>.unaryPlus(): ValidationStatus
+            where D : ValidationRule.Descriptor<V, C, D>, C : Check<*> =
         with(internalsGate) {
             scope.verifyValue(subject, this@unaryPlus)
         }

@@ -1,6 +1,6 @@
 package io.dwsoft.checkt.core
 
-import io.dwsoft.checkt.testing.failWithMessage
+import io.dwsoft.checkt.testing.fail
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.pass
 import io.dwsoft.checkt.testing.shouldBeInvalid
@@ -18,7 +18,6 @@ import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.map
 import io.kotest.property.arbitrary.next
 import io.kotest.property.arbitrary.string
-import io.mockk.mockk
 
 class ValidationTests : FreeSpec({
     data class Dto(
@@ -33,16 +32,16 @@ class ValidationTests : FreeSpec({
             of = Dto(),
             with = validation {
                 (+pass).shouldBeValid()
-                (+failWithMessage { "1" }).shouldBeInvalid(withViolationsCountEqualTo = 1)
+                (+fail.withMessage { "1" }).shouldBeInvalid(withViolationsCountEqualTo = 1)
                 the.simpleValue {
-                    +failWithMessage { "2" }
-                    +failWithMessage { "3" }
+                    +fail.withMessage { "2" }
+                    +fail.withMessage { "3" }
                 }.shouldBeInvalid(withViolationsCountEqualTo = 2)
                 require(the::collection) {
-                    +failWithMessage { "4" }
+                    +fail.withMessage { "4" }
                 }.shouldBeInvalid(withViolationsCountEqualTo = 1)
                 require(the.map.namedAs(!"customName")) {
-                    +failWithMessage { "5" }
+                    +fail.withMessage { "5" }
                 }.shouldBeInvalid(withViolationsCountEqualTo = 1)
             }
         ) {
@@ -50,8 +49,8 @@ class ValidationTests : FreeSpec({
                 validated.failed { withMessage("1") },
                 validated.simpleValue.failed { withMessage("2") },
                 validated.simpleValue.failed { withMessage("3") },
-                validated.collection.failed { withMessage("4"); underPath { -"collection" } },
-                validated.map.failed { withMessage("5"); underPath { -"customName" } },
+                validated.collection.failed { withMessage("4"); underPath { root / "collection" } },
+                validated.map.failed { withMessage("5"); underPath { root / "customName" } },
             )
         }
     }
@@ -60,7 +59,7 @@ class ValidationTests : FreeSpec({
         val toValidate = Dto(collection = Arb.list(Arb.double(), 2..3).next())
         val expectedViolations = toValidate.collection.mapIndexed { idx, elem ->
             elem.failed {
-                underPath { -"collection"[idx.idx] }
+                underPath { root / "collection"[idx.idx] }
                 withMessage("$idx")
             }
         }.toTypedArray()
@@ -69,7 +68,7 @@ class ValidationTests : FreeSpec({
             of = toValidate,
             with = validation {
                 require(the::collection) {
-                    eachElement { idx -> +failWithMessage { "$idx" } }
+                    eachElement { idx -> +fail.withMessage { "$idx" } }
                 }
             }
         ) {
@@ -83,7 +82,7 @@ class ValidationTests : FreeSpec({
         )
         val expectedViolations = toValidate.map.flatMap { (key, value) ->
             val msg = "$key:$value"
-            val pathPrefix = validationPath { -"map"["$key"] }
+            val pathPrefix = validationPath { root / "map"["$key"] }
             listOf(
                 key.failed { withMessage(msg); underPath { pathPrefix / "key" } },
                 value.failed { withMessage(msg); underPath { pathPrefix / "value" } }
@@ -95,8 +94,8 @@ class ValidationTests : FreeSpec({
             with = validation {
                 require(the::map) {
                     eachEntry(
-                        keyValidation = { value -> +failWithMessage { "$subject:$value" } },
-                        valueValidation = { key -> +failWithMessage { "$key:$subject" } },
+                        keyValidation = { value -> +fail.withMessage { "$subject:$value" } },
+                        valueValidation = { key -> +fail.withMessage { "$key:$subject" } },
                     )
                 }
             }
@@ -134,8 +133,8 @@ class ValidationTests : FreeSpec({
         "...the other rule's result" {
             val failFirst = "fail"
             val spec = validation<Dto> {
-                val status = if (the.simpleValue === failFirst) +failWithMessage { "1" } else +pass
-                status.whenValid { +failWithMessage { "2" } }
+                val status = if (the.simpleValue === failFirst) +fail.withMessage { "1" } else +pass
+                status.whenValid { +fail.withMessage { "2" } }
             }
 
             testValidation(Dto(simpleValue = failFirst), spec) {
@@ -148,13 +147,13 @@ class ValidationTests : FreeSpec({
 
         "...whether a value is not null" {
             val spec = validation<Dto> {
-                requireUnlessNull(the::nullableValue) { +failWithMessage { "1" } }
+                requireUnlessNull(the::nullableValue) { +fail.withMessage { "1" } }
             }
 
             testValidation(Dto(nullableValue = null), spec) { result.shouldBeValid() }
             testValidation(Dto(nullableValue = Any()), spec) {
                 result.shouldBeInvalidBecause(
-                    validated.nullableValue.failed{ underPath { -"nullableValue" }; withMessage("1") }
+                    validated.nullableValue.failed{ withMessage("1"); underPath { root / "nullableValue" } }
                 )
             }
         }
@@ -165,10 +164,13 @@ class ValidationTests : FreeSpec({
 
         "Exceptions thrown by validation rules are caught" {
             class ThrowingCheck(val ex: Throwable) : Check<Any> by Check({ throw ex })
+            class ThrowingCheckRule : ValidationRule.Descriptor<Any, ThrowingCheck, ThrowingCheckRule> {
+                override val defaultMessage: LazyErrorMessage<ThrowingCheckRule, Any> = { "" }
+            }
 
             val spec = validation<Dto> {
                 require(the::simpleValue) {
-                    +ThrowingCheck(expectedException).toValidationRule(mockk()) { "" }
+                    +ThrowingCheck(expectedException).toValidationRule(ThrowingCheckRule())
                 }
             }
 
@@ -250,7 +252,7 @@ class ValidationTests : FreeSpec({
                     }.recover(
                         from<IllegalStateException> { +pass }
                     ).whenValid {
-                        +failWithMessage { "1" }
+                        +fail.withMessage { "1" }
                     }
                 }
             }

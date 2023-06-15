@@ -1,11 +1,11 @@
 package io.dwsoft.checkt.testing
 
-import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.ValidationPath
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationStatus
 import io.dwsoft.checkt.core.Violation
 import io.dwsoft.checkt.core.joinToString
+import io.dwsoft.checkt.core.name
 import io.dwsoft.checkt.core.toValidationStatus
 import io.kotest.assertions.asClue
 import io.kotest.assertions.assertSoftly
@@ -21,27 +21,24 @@ fun ValidationStatus.shouldBeValid() {
     }
 }
 
-fun ValidationStatus.shouldBeInvalid(
-    withViolationsCountEqualTo: Int? = null
-): ValidationStatus.Invalid =
+fun ValidationStatus.shouldBeInvalid(withViolationsCountEqualTo: Int? = null): ValidationStatus.Invalid =
     shouldBeInstanceOf<ValidationStatus.Invalid>()
         .apply {
             withViolationsCountEqualTo?.let {
-                "Validation should be invalid because of $withViolationsCountEqualTo violation(s)"
-                    .asClue { violations shouldHaveSize withViolationsCountEqualTo }
+                "Validation should be invalid because of $withViolationsCountEqualTo violation(s)".asClue {
+                    violations shouldHaveSize withViolationsCountEqualTo
+                }
             }
         }
 
-fun ValidationStatus.shouldBeInvalidBecause(
-    vararg expectedViolations: ExpectedViolation<*, *>,
-) = shouldBeInvalidBecause(expectedViolations.toList(), false)
+fun ValidationStatus.shouldBeInvalidBecause(vararg expectedViolations: ExpectedViolation<*>) =
+    shouldBeInvalidBecause(expectedViolations.toList(), false)
 
-fun ValidationStatus.shouldBeInvalidExactlyBecause(
-    vararg expectedViolations: ExpectedViolation<*, *>,
-) = shouldBeInvalidBecause(expectedViolations.toList(), true)
+fun ValidationStatus.shouldBeInvalidExactlyBecause(vararg expectedViolations: ExpectedViolation<*>) =
+    shouldBeInvalidBecause(expectedViolations.toList(), true)
 
 private fun ValidationStatus.shouldBeInvalidBecause(
-    expectedViolations: List<ExpectedViolation<*, *>>,
+    expectedViolations: List<ExpectedViolation<*>>,
     checkViolationsCount: Boolean,
 ): ValidationStatus.Invalid =
     shouldBeInvalid(if (checkViolationsCount) expectedViolations.size else null)
@@ -77,17 +74,17 @@ private fun ValidationStatus.shouldBeInvalidBecause(
             }
         }
 
-data class ExpectedViolation<D : ValidationRule.Descriptor<*, C>, C : Check<*>>(
+data class ExpectedViolation<D : ValidationRule.Descriptor<*, *, *>>(
     val value: Any?,
     val path: ValidationPath,
     val rule: D,
     val errorMessageAssertions: (String) -> Unit,
 )
 
-fun <D : ValidationRule.Descriptor<*, C>, C : Check<*>> Any?.violated(
+fun <D : ValidationRule.Descriptor<*, *, *>> Any?.violated(
     descriptor: D,
     configuration: ViolationAssertionsDsl.() -> Unit,
-): ExpectedViolation<D, C> =
+): ExpectedViolation<D> =
     ViolationAssertionsDsl().apply(configuration).let {
         ExpectedViolation(
             value = this,
@@ -97,20 +94,8 @@ fun <D : ValidationRule.Descriptor<*, C>, C : Check<*>> Any?.violated(
         )
     }
 
-fun Any?.failed(
-    configuration: ViolationAssertionsDsl.() -> Unit,
-): ExpectedViolation<AlwaysFailing.Rule, AlwaysFailing.Check> =
+fun Any?.failed(configuration: ViolationAssertionsDsl.() -> Unit): ExpectedViolation<AlwaysFailing.Rule> =
     violated(AlwaysFailing.Rule, configuration)
-
-fun Violation<*, *, *>.debugString() =
-    buildString {
-        append("{ ")
-        append("rule: '${context.descriptor}', ")
-        append("path: '${context.path.joinToString()}', ")
-        append("value: '$value', ")
-        append("message: '${errorMessage}', ")
-        append(" }")
-    }
 
 fun ValidationStatus.debugString() =
     when (this) {
@@ -118,4 +103,4 @@ fun ValidationStatus.debugString() =
         is ValidationStatus.Invalid -> this.violations.joinToString { it.debugString() }
     }
 
-fun Collection<Violation<*, *, *>>.debugString() = toList().toValidationStatus().debugString()
+private fun Collection<Violation<*, *>>.debugString() = toList().toValidationStatus().debugString()

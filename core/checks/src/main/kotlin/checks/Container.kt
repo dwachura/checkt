@@ -4,57 +4,42 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
-import io.dwsoft.checkt.core.key
 
 object NotEmpty : Check<Container> by Check({ it.isNotEmpty() }) {
-    object RuleDescriptor : ValidationRule.Descriptor<Any?, NotEmpty>(Check.key())
+    class Rule<V> : ValidationRule.Descriptor<V, NotEmpty, Rule<V>> {
+        override val defaultMessage: LazyErrorMessage<Rule<V>, V> = { "Value must not be empty" }
+    }
 }
 
 @JvmName("notEmptyCharSequence")
-fun ValidationRules<CharSequence>.notEmpty(
-    errorMessage: LazyErrorMessage<NotEmpty.RuleDescriptor, CharSequence, NotEmpty> =
-        { "Value must not be empty" },
-) : ValidationRule<NotEmpty.RuleDescriptor, CharSequence, NotEmpty> =
-    ValidationRule.create(NotEmpty.RuleDescriptor, NotEmpty, errorMessage, Container::from)
+fun ValidationRules<CharSequence>.notEmpty(): ValidationRule<NotEmpty.Rule<CharSequence>, CharSequence> =
+    ValidationRule.create(NotEmpty.Rule(), NotEmpty, Container::from)
 
 @JvmName("notEmptyCollection")
-fun <T> ValidationRules<Collection<*>>.notEmpty(
-    errorMessage: LazyErrorMessage<NotEmpty.RuleDescriptor, Collection<T>, NotEmpty> =
-        { "Value must not be empty" },
-) : ValidationRule<NotEmpty.RuleDescriptor, Collection<T>, NotEmpty> =
-    ValidationRule.create(NotEmpty.RuleDescriptor, NotEmpty, errorMessage, Container::from)
+fun <T> ValidationRules<Collection<*>>.notEmpty(): ValidationRule<NotEmpty.Rule<Collection<T>>, Collection<T>> =
+    ValidationRule.create(NotEmpty.Rule(), NotEmpty, Container::from)
 
 @JvmName("notEmptyArray")
-fun <T> ValidationRules<Array<*>>.notEmpty(
-    errorMessage: LazyErrorMessage<NotEmpty.RuleDescriptor, Array<T>, NotEmpty> =
-        { "Value must not be empty" },
-) : ValidationRule<NotEmpty.RuleDescriptor, Array<T>, NotEmpty> =
-    ValidationRule.create(NotEmpty.RuleDescriptor, NotEmpty, errorMessage, Container::from)
+fun <T> ValidationRules<Array<*>>.notEmpty(): ValidationRule<NotEmpty.Rule<Array<T>>, Array<T>> =
+    ValidationRule.create(NotEmpty.Rule(), NotEmpty, Container::from)
 
 object Empty : Check<Container> by Check({ it.isEmpty() }) {
-    object RuleDescriptor : ValidationRule.Descriptor<Any?, Empty>(Check.key())
+    class Rule<V> : ValidationRule.Descriptor<V, Empty, Rule<V>> {
+        override val defaultMessage: LazyErrorMessage<Rule<V>, V> = { "Value must be empty" }
+    }
 }
 
 @JvmName("emptyCharSequence")
-fun ValidationRules<CharSequence>.empty(
-    errorMessage: LazyErrorMessage<Empty.RuleDescriptor, CharSequence, Empty> =
-        { "Value must be empty" },
-) : ValidationRule<Empty.RuleDescriptor, CharSequence, Empty> =
-    ValidationRule.create(Empty.RuleDescriptor, Empty, errorMessage, Container::from)
+fun ValidationRules<CharSequence>.empty(): ValidationRule<Empty.Rule<CharSequence>, CharSequence> =
+    ValidationRule.create(Empty.Rule(), Empty, Container::from)
 
 @JvmName("emptyCollection")
-fun <T> ValidationRules<Collection<*>>.empty(
-    errorMessage: LazyErrorMessage<Empty.RuleDescriptor, Collection<T>, Empty> =
-        { "Value must be empty" },
-) : ValidationRule<Empty.RuleDescriptor, Collection<T>, Empty> =
-    ValidationRule.create(Empty.RuleDescriptor, Empty, errorMessage, Container::from)
+fun <T> ValidationRules<Collection<*>>.empty(): ValidationRule<Empty.Rule<Collection<T>>, Collection<T>> =
+    ValidationRule.create(Empty.Rule(), Empty, Container::from)
 
 @JvmName("emptyArray")
-fun <T> ValidationRules<Array<*>>.empty(
-    errorMessage: LazyErrorMessage<Empty.RuleDescriptor, Array<T>, Empty> =
-        { "Value must be empty" },
-) : ValidationRule<Empty.RuleDescriptor, Array<T>, Empty> =
-    ValidationRule.create(Empty.RuleDescriptor, Empty, errorMessage, Container::from)
+fun <T> ValidationRules<Array<*>>.empty(): ValidationRule<Empty.Rule<Array<T>>, Array<T>> =
+    ValidationRule.create(Empty.Rule(), Empty, Container::from)
 
 /**
  * Interface used to group types that can have "empty" state, introduced due to lack of

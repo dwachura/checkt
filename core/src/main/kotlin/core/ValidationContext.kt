@@ -1,35 +1,34 @@
 package io.dwsoft.checkt.core
 
-sealed interface ValidationContext<D : ValidationRule.Descriptor<*, C>, C : Check<*>> {
+import io.dwsoft.checkt.core.ValidationRule.Descriptor
+
+sealed interface ValidationContext<D : Descriptor<*, *, *>> {
     val descriptor: D
     val path: ValidationPath
 
     companion object {
-        fun <D, C> create(descriptor: D, validationPath: ValidationPath): ValidationContext<D, C>
-                where D : ValidationRule.Descriptor<*, C>, C : Check<*> =
+        fun <D> create(descriptor: D, validationPath: ValidationPath): ValidationContext<D>
+                where D : Descriptor<*, *, *> =
             Parameterless(descriptor, validationPath)
 
-        fun <D : ValidationRule.Descriptor<*, C>, C: ParameterizedCheck<*, P>, P : ParamsOf<C, P>> create(
-            descriptor: D,
-            params: P,
-            validationPath: ValidationPath
-        ): ValidationContext<D, C> =
+        fun <D, C, P> create(descriptor: D, params: P, validationPath: ValidationPath): ValidationContext<D>
+                where D : Descriptor<*, C, *>, C : ParameterizedCheck<*, P>, P : ParamsOf<C, P> =
             Parameterized(descriptor, params, validationPath)
     }
 }
 
-private data class Parameterless<D : ValidationRule.Descriptor<*, C>, C : Check<*>>(
+private data class Parameterless<D : Descriptor<*, *, *>>(
     override val descriptor: D,
     override val path: ValidationPath
-) : ValidationContext<D, C>
+) : ValidationContext<D>
 
-private data class Parameterized<D : ValidationRule.Descriptor<*, C>, C : ParameterizedCheck<*, P>, P : ParamsOf<C, P>>(
+private data class Parameterized<D : Descriptor<*, C, *>, C : ParameterizedCheck<*, P>, P : ParamsOf<C, P>>(
     override val descriptor: D,
     val params: P,
     override val path: ValidationPath
-) : ValidationContext<D, C>
+) : ValidationContext<D>
 
 @Suppress("UNCHECKED_CAST")
-val <C, P> ValidationContext<out ValidationRule.Descriptor<*, C>, C>.params: P
+val <C, P> ValidationContext<out Descriptor<*, C, *>>.params: P
         where C : ParameterizedCheck<*, P>, P : ParamsOf<C, P>
     get() = (this as Parameterized<*, C, P>).params

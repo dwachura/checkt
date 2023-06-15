@@ -25,14 +25,14 @@ class ValidationPathBuilderTests : FreeSpec({
 
 
         forAll(
-            row({ -"seg1" }, path(seg1)),
-            row({ -"seg1" / "seg2" }, path(seg1) + seg2),
-            row({ -"seg1"[1.idx] }, path(seg1) + idx1),
-            row({ -"seg1"["key1"] }, path(seg1) + key1),
-            row({ -"seg1" / "seg2"[1.idx] }, path(seg1) + seg2 + idx1),
-            row({ -"seg1" / "seg2"[1.idx][2.idx] }, path(seg1) + seg2 + idx1 + idx2),
-            row({ -"seg1" / "seg2"["key1"]["key2"] }, path(seg1) + seg2 + key1 + key2),
-            row({ -"seg1" / "seg2"[1.idx]["key1"][2.idx]["key2"] }, path(seg1) + seg2 + idx1 + key1 + idx2 + key2),
+            row({ root / "seg1" }, path(seg1)),
+            row({ root / "seg1" / "seg2" }, path(seg1) + seg2),
+            row({ root / "seg1"[1.idx] }, path(seg1) + idx1),
+            row({ root / "seg1"["key1"] }, path(seg1) + key1),
+            row({ root / "seg1" / "seg2"[1.idx] }, path(seg1) + seg2 + idx1),
+            row({ root / "seg1" / "seg2"[1.idx][2.idx] }, path(seg1) + seg2 + idx1 + idx2),
+            row({ root / "seg1" / "seg2"["key1"]["key2"] }, path(seg1) + seg2 + key1 + key2),
+            row({ root / "seg1" / "seg2"[1.idx]["key1"][2.idx]["key2"] }, path(seg1) + seg2 + idx1 + key1 + idx2 + key2),
         ) { pathBuilder: ValidationPathBuilder, expectedPath: ValidationPath ->
             val actualPath = validationPath(pathBuilder)
             val readableExpectedPath = expectedPath.joinToString()

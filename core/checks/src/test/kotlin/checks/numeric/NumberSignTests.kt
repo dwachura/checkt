@@ -21,19 +21,19 @@ import io.kotest.property.exhaustive.of
 class NumberSignTests : FreeSpec({
     testsFor(numberCases()) {
         takingCaseAsValue {
-            rule { bePositive() } shouldPassWhen { value.toDouble() > 0.0 } orFail {
+            rule { bePositive } shouldPassWhen { value.toDouble() > 0.0 } orFail {
                 withMessage("Number must be positive")
             }
 
-            rule { notBePositive() } shouldPassWhen { value.toDouble() <= 0.0 } orFail {
+            rule { notBePositive } shouldPassWhen { value.toDouble() <= 0.0 } orFail {
                 withMessage("Number must not be positive")
             }
 
-            rule { beNegative() } shouldPassWhen { value.toDouble() < 0.0 } orFail {
+            rule { beNegative } shouldPassWhen { value.toDouble() < 0.0 } orFail {
                 withMessage("Number must be negative")
             }
 
-            rule { notBeNegative() } shouldPassWhen { value.toDouble() >= 0.0 } orFail {
+            rule { notBeNegative } shouldPassWhen { value.toDouble() >= 0.0 } orFail {
                 withMessage("Number must not be negative")
             }
         }

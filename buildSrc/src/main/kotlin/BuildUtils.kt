@@ -5,3 +5,5 @@ fun Project.artifactName(): String =
         this == rootProject || parent == null -> name
         else -> "${parent!!.artifactName()}-$name"
     }
+
+fun Project.isSnapshot(): Boolean = "$version".endsWith("SNAPSHOT", ignoreCase = true)

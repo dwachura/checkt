@@ -4,14 +4,12 @@ import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
-import io.dwsoft.checkt.core.key
 
 object NotBlank : Check<CharSequence> by Check({ it.isNotBlank() }) {
-    object RuleDescriptor : ValidationRule.Descriptor<CharSequence, NotBlank>(Check.key())
+    object Rule : ValidationRule.Descriptor<CharSequence, NotBlank, Rule> {
+        override val defaultMessage: LazyErrorMessage<Rule, CharSequence> = { "Value must not be blank" }
+    }
 }
 
-fun ValidationRules<CharSequence>.notBlank(
-    errorMessage: LazyErrorMessage<NotBlank.RuleDescriptor, CharSequence, NotBlank> =
-        { "Value must not be blank" },
-) : ValidationRule<NotBlank.RuleDescriptor, CharSequence, NotBlank> =
-    NotBlank.toValidationRule(NotBlank.RuleDescriptor, errorMessage)
+val ValidationRules<CharSequence>.notBlank: ValidationRule<NotBlank.Rule, CharSequence>
+    get() = NotBlank.toValidationRule(NotBlank.Rule)

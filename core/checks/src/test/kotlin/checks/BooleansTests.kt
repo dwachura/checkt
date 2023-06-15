@@ -9,19 +9,19 @@ import io.kotest.property.exhaustive.of
 class BooleansTests : FreeSpec({
     testsFor(booleanCases()) {
         takingCaseAsValue {
-            rule { beTrue() } shouldPassWhen { value.isTrue() } orFail {
+            rule { beTrue } shouldPassWhen { value.isTrue() } orFail {
                 withMessage("Value must be true")
             }
 
-            rule { notBeTrue() } shouldPassWhen { value == null || value.isFalse() } orFail {
+            rule { notBeTrue } shouldPassWhen { value == null || value.isFalse() } orFail {
                 withMessage("Value must not be true")
             }
 
-            rule { beFalse() } shouldPassWhen { value.isFalse() } orFail {
+            rule { beFalse } shouldPassWhen { value.isFalse() } orFail {
                 withMessage("Value must be false")
             }
 
-            rule { notBeFalse() } shouldPassWhen { value == null || value.isTrue() } orFail {
+            rule { notBeFalse } shouldPassWhen { value == null || value.isTrue() } orFail {
                 withMessage("Value must not be false")
             }
         }

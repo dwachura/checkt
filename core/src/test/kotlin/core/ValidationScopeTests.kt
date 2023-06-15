@@ -2,9 +2,10 @@ package io.dwsoft.checkt.core
 
 import io.dwsoft.checkt.core.ValidationPath.Element.Index
 import io.dwsoft.checkt.core.ValidationPath.Element.Segment
+import io.dwsoft.checkt.core.ValidationRule.Companion.withMessage
 import io.dwsoft.checkt.core.ValidationScope.NamingUniquenessException
 import io.dwsoft.checkt.core.ValidationStatus.Valid
-import io.dwsoft.checkt.testing.failWithMessage
+import io.dwsoft.checkt.testing.fail
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.notBlankString
@@ -21,7 +22,7 @@ import io.kotest.property.arbitrary.positiveInt
 import io.kotest.property.exhaustive.of
 
 class ValidationScopeTests : FreeSpec({
-    val failingRule = ValidationRule.failWithMessage { "$value" }
+    val failingRule = ValidationRule.fail withMessage { "$value" }
 
     "Status of successfully validated scope is ${Valid::class.simpleName}" {
         val validationScope = ValidationScope(ValidationPath(!"seg1"))

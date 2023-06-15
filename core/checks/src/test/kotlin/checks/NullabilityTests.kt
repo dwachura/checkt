@@ -1,7 +1,7 @@
 package io.dwsoft.checkt.core.checks
 
 import io.dwsoft.checkt.core.validation
-import io.dwsoft.checkt.testing.failWithMessage
+import io.dwsoft.checkt.testing.fail
 import io.dwsoft.checkt.testing.failed
 import io.dwsoft.checkt.testing.forAll
 import io.dwsoft.checkt.testing.shouldBeInvalidBecause
@@ -18,13 +18,13 @@ class NullabilityTests : FreeSpec({
         takingCaseAsValue {
             check { NotNull } shouldPassWhen { value != null }
 
-            rule { notBeNull() } shouldPassWhen { value != null } orFail {
+            rule { notBeNull } shouldPassWhen { value != null } orFail {
                 withMessage("Value must not be null")
             }
 
             check { IsNull } shouldPassWhen { value == null }
 
-            rule { beNull() } shouldPassWhen { value == null } orFail {
+            rule { beNull } shouldPassWhen { value == null } orFail {
                 withMessage("Value must be null")
             }
         }
@@ -37,13 +37,13 @@ class NullabilityTests : FreeSpec({
                 of = value,
                 with = validation {
                     notNullAnd(notNullErrorMessage = { "1" }) {
-                        +failWithMessage { "2" }
+                        +fail.withMessage { "2" }
                     }
                 }
             ) {
                 when (value) {
                     null -> result.shouldBeInvalidBecause(
-                        validated.violated(NotNull.RuleDescriptor) { withMessage("1") }
+                        validated.violated(NotNull.Rule) { withMessage("1") }
                     )
                     else -> result.shouldBeInvalidBecause(
                         validated.failed { withMessage("2") }

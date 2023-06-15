@@ -17,6 +17,7 @@ import io.dwsoft.checkt.core.requireUnlessNull
 import io.dwsoft.checkt.core.the
 import io.dwsoft.checkt.core.validate
 import kotlinx.coroutines.runBlocking
+import kotlin.reflect.KClass
 
 fun main() = runBlocking {
     val dto =
@@ -41,10 +42,12 @@ fun main() = runBlocking {
 
     (dto.validate().getOrThrow() as? ValidationStatus.Invalid)
         ?.violations?.map {
-            it.ifFailedFor(NotBlank.RuleDescriptor) {
-                "String '$value' must not be blank"
-            } ?: it.ifFailedFor(LessThan.RuleDescriptor<Number>()) {
-                "Number '$value' must be less than ${context.params.max}"
+            it.ifFailedFor(NotBlank.Rule) {
+                "PATH SKIPPED ### String '$value' must not be blank"
+            } ?: it.ifFailedFor<LessThan.Rule<Comparable<*>>, _, _> {
+                "${context.path.joinToString()} ### Number '$value' must be less than ${context.params.max}"
+            } ?: it.ifFailedFor(LessThan.Rule<Comparable<*>>()) {
+                "${context.path.joinToString()} ### Number '$value' must be less than ${context.params.max}"
             } ?: "${it.context.path.joinToString(includeRoot = false)} - ${it.errorMessage} (was '${it.value}')"
         }?.forEach { println(it) }
         ?: println(dto)
@@ -74,13 +77,13 @@ private data class BuyerProfile(
     suspend fun validate(): ValidationResult =
         validate {
             require(::firstName) {
-                +notBlank() whenValid {
+                +notBlank whenValid {
                     the.length { +lessThan(10) }
                 }
             }
             require(::lastName) {
                 subject {
-                    +notBlank()
+                    +notBlank
                 } whenValid {
                     the.length { +lessThan(10) }
                 }
@@ -90,31 +93,31 @@ private data class BuyerProfile(
 
             require(::address) {
                 require(the::street) {
-                    +notBlank() whenValid {
+                    +notBlank whenValid {
                         the.length { +inRange(1..20) }
                     }
                 }
-                require(the::houseNumber) { +bePositive() }
+                require(the::houseNumber) { +bePositive.withMessage { "House number cannot be negative number" } }
                 require(the::city) {
-                    +notBlank() whenValid {
+                    +notBlank whenValid {
                         the.length { +inRange(1..20) }
                     }
                 }
                 require(the::postCode) {
-                    +notBlank() whenValid {
+                    +notBlank whenValid {
                         +matchesRegex("^\\S{1,10}$".toRegex())
                     }
                 }
                 require(the::country) {
-                    +notBlank() whenValid {
+                    +notBlank whenValid {
                         +matchesRegex("^[A-Z]{2}$".toRegex())
                     }
                 }
             }
 
             requireUnlessNull(::company) {
-                require(the::name) { +notBlank() }
-                require(the::vatNumber) { +notBlank() }
+                require(the::name) { +notBlank }
+                require(the::vatNumber) { +notBlank }
             }
         }
 }

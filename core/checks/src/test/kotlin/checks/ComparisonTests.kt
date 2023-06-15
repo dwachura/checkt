@@ -39,28 +39,29 @@ class ComparisonTests : FreeSpec({
 private fun comparisonCases(): Gen<Pair<Comparable<Any>, Any>> {
     val any = Any()
     return Exhaustive.of(
-        lessThan(any),
-        greaterThan(any),
-        equals(any),
+        Cases.lessThan(any),
+        Cases.greaterThan(any),
+        Cases.equalTo(any),
     )
 }
 
-private fun lessThan(any: Any): Pair<Comparable<Any>, Any> =
-    intLessThanHashCodeOf(any).asComparableToAny() to any
+private object Cases {
+    fun lessThan(any: Any): Pair<Comparable<Any>, Any> =
+        intLessThanHashCodeOf(any).asComparableToAny() to any
 
-private fun intLessThanHashCodeOf(any: Any) = Arb.int().filter { it < any.hashCode() }.next()
+    private fun intLessThanHashCodeOf(any: Any) = Arb.int().filter { it < any.hashCode() }.next()
 
-private fun greaterThan(any: Any): Pair<Comparable<Any>, Any> =
-    intGreaterThanHashCodeOf(any).asComparableToAny() to any
+    fun greaterThan(any: Any): Pair<Comparable<Any>, Any> =
+        intGreaterThanHashCodeOf(any).asComparableToAny() to any
 
-private fun intGreaterThanHashCodeOf(any: Any) = Arb.int().filter { it > any.hashCode() }.next()
+    private fun intGreaterThanHashCodeOf(any: Any) = Arb.int().filter { it > any.hashCode() }.next()
 
-private fun equals(any: Any): Pair<Comparable<Any>, Any> =
-    any.hashCode().asComparableToAny() to any
+    fun equalTo(any: Any): Pair<Comparable<Any>, Any> =
+        any.hashCode().asComparableToAny() to any
 
-private fun Int.asComparableToAny() =
-    object : Comparable<Any> {
-        override fun compareTo(other: Any): Int =
-            this@asComparableToAny.compareTo(other.hashCode())
-    }
-
+    private fun Int.asComparableToAny() =
+        object : Comparable<Any> {
+            override fun compareTo(other: Any): Int =
+                this@asComparableToAny.compareTo(other.hashCode())
+        }
+}

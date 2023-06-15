@@ -1,6 +1,9 @@
 package io.dwsoft.checkt.testing
 
 import io.dwsoft.checkt.core.ValidationPath
+import io.dwsoft.checkt.core.Violation
+import io.dwsoft.checkt.core.joinToString
+import io.dwsoft.checkt.core.name
 import io.kotest.matchers.shouldBe
 
 interface ViolationAssertionsDsl {
@@ -30,4 +33,14 @@ fun ViolationAssertionsDsl() =
         override fun withMessage(expectedMessage: String) {
             errorMessageAssertions = { it shouldBe expectedMessage }
         }
+    }
+
+fun Violation<*, *>.debugString() =
+    buildString {
+        append("{ ")
+        append("rule: '${context.descriptor.name}', ")
+        append("path: '${context.path.joinToString()}', ")
+        append("value: '$value', ")
+        append("message: '$errorMessage', ")
+        append(" }")
     }

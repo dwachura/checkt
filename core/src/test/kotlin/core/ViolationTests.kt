@@ -31,8 +31,7 @@ class ViolationTests : FreeSpec({
     //  may be required to refactor Violation or/and ValidationContext type parameters
 //    "violation can be tested against rule description" {
 //        forAll(cases(AlwaysFailing.Rule, AlwaysPassing.Rule)) {
-//            val t: ValidationRule.Descriptor<Any?, out Check<Any?>> = this
-//            val context = ValidationContext.create(t, ValidationPath())
+//            val context = ValidationContext.create(this, ValidationPath())
 //            val violation = Violation(Any(), context, Arb.string().next())
 //
 //            val result = violation.ifFailedFor(AlwaysFailing.Rule) { true }
@@ -45,5 +44,5 @@ class ViolationTests : FreeSpec({
 //    }
 })
 
-private fun ValidationRule.Descriptor<Any, *>.violation(): Violation<*, *, *> =
+private fun <D : ValidationRule.Descriptor<Any, *, D>> D.violation(): Violation<*, *> =
     Violation(Any(), ValidationContext.create(this, ValidationPath()), Arb.string().next())

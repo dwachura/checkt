@@ -1,13 +1,11 @@
 package io.dwsoft.checkt.core.checks
 
-import io.dwsoft.checkt.core.Check
 import io.dwsoft.checkt.core.LazyErrorMessage
 import io.dwsoft.checkt.core.ParameterizedCheck
 import io.dwsoft.checkt.core.ParamsOf
 import io.dwsoft.checkt.core.ValidationRule
 import io.dwsoft.checkt.core.ValidationRules
 import io.dwsoft.checkt.core.and
-import io.dwsoft.checkt.core.key
 
 class ContainsAny<V>(elements: Collection<V>) :
     ParameterizedCheck<Collection<V>, ContainsAny.Params<V>> by (
@@ -16,15 +14,16 @@ class ContainsAny<V>(elements: Collection<V>) :
 {
     data class Params<V>(val elements: Set<V>) : ParamsOf<ContainsAny<V>, Params<V>>
 
-    class RuleDescriptor<V> : ValidationRule.Descriptor<Collection<V>, ContainsAny<V>>(Check.key())
+    class Rule<V> : ValidationRule.Descriptor<Collection<V>, ContainsAny<V>, Rule<V>> {
+        override val defaultMessage: LazyErrorMessage<Rule<V>, Collection<V>> =
+            { "Collection must contain any of elements specified" }
+    }
 }
 
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAnyOf(
     elements: T2,
-    errorMessage: LazyErrorMessage<ContainsAny.RuleDescriptor<T>, T2, ContainsAny<T>> =
-        { "Collection must contain any of elements specified" },
-): ValidationRule<ContainsAny.RuleDescriptor<T>, T2, ContainsAny<T>> =
-    ContainsAny(elements).toValidationRule(ContainsAny.RuleDescriptor(), errorMessage)
+): ValidationRule<ContainsAny.Rule<T>, T2> =
+    ContainsAny(elements).toValidationRule(ContainsAny.Rule())
 
 class ContainsAll<V>(private val elements: Collection<V>) :
     ParameterizedCheck<Collection<V>, ContainsAll.Params<V>>
@@ -51,15 +50,16 @@ class ContainsAll<V>(private val elements: Collection<V>) :
     data class Params<V>(val elements: Collection<V>) :
         ParamsOf<ContainsAll<V>, Params<V>>
 
-    class RuleDescriptor<V> : ValidationRule.Descriptor<Collection<V>, ContainsAll<V>>(Check.key())
+    class Rule<V> : ValidationRule.Descriptor<Collection<V>, ContainsAll<V>, Rule<V>> {
+        override val defaultMessage: LazyErrorMessage<Rule<V>, Collection<V>> =
+            { "Collection must contain all of elements specified" }
+    }
 }
 
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsAllOf(
     elements: T2,
-    errorMessage: LazyErrorMessage<ContainsAll.RuleDescriptor<T>, T2, ContainsAll<T>> =
-        { "Collection must contain all of elements specified" },
-): ValidationRule<ContainsAll.RuleDescriptor<T>, T2, ContainsAll<T>> =
-    ContainsAll(elements).toValidationRule(ContainsAll.RuleDescriptor(), errorMessage)
+): ValidationRule<ContainsAll.Rule<T>, T2> =
+    ContainsAll(elements).toValidationRule(ContainsAll.Rule())
 
 class ContainsNone<V>(elements: Collection<V>) :
     ParameterizedCheck<Collection<V>, ContainsNone.Params<V>> by (
@@ -68,12 +68,13 @@ class ContainsNone<V>(elements: Collection<V>) :
 {
     data class Params<V>(val elements: Set<V>) : ParamsOf<ContainsNone<V>, Params<V>>
 
-    class RuleDescriptor<V> : ValidationRule.Descriptor<Collection<V>, ContainsNone<V>>(Check.key())
+    class Rule<V> : ValidationRule.Descriptor<Collection<V>, ContainsNone<V>, Rule<V>> {
+        override val defaultMessage: LazyErrorMessage<Rule<V>, Collection<V>> =
+            { "Collection must not contain any of elements specified" }
+    }
 }
 
 fun <T, T2 : Collection<T>> ValidationRules<T2>.containsNoneOf(
     elements: T2,
-    errorMessage: LazyErrorMessage<ContainsNone.RuleDescriptor<T>, T2, ContainsNone<T>> =
-        { "Collection must not contain any of elements specified" },
-): ValidationRule<ContainsNone.RuleDescriptor<T>, T2, ContainsNone<T>> =
-    ContainsNone(elements).toValidationRule(ContainsNone.RuleDescriptor(), errorMessage)
+): ValidationRule<ContainsNone.Rule<T>, T2> =
+    ContainsNone(elements).toValidationRule(ContainsNone.Rule())
